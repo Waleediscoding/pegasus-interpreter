@@ -16,6 +16,7 @@ class IfStmt;
 class WhileStmt;
 class ForStmt;
 class BlockStmt;
+class KeywordStmt;
 
 class StmtVisitor
 {
@@ -35,6 +36,8 @@ public:
 	virtual void visitForStmt(ForStmt& stmt) = 0;
 
 	virtual void visitBlockStmt(BlockStmt& stmt) = 0;
+
+	virtual void visitKeywordStmt(KeywordStmt& stmt) = 0;
 };
 
 class Stmt
@@ -106,26 +109,14 @@ public:
 
 	const Token m_name;
 	const ExprPtr m_initialiser{};
-	VarCoords m_coords;
-
-	VarStmt(Token name, ExprPtr initialiser, VarCoords coords)
-		: m_name{ name }, m_initialiser{ std::move(initialiser) }, m_coords{ coords }
+	VarStmt(Token name, ExprPtr initialiser)
+		: m_name{ name }, m_initialiser{ std::move(initialiser) }
 	{
 	}
 
 	void accept(StmtVisitor& visitor) override
 	{
 		visitor.visitVarStmt(*this);
-	}
-
-	VarCoords coords() const
-	{
-		return m_coords;
-	}
-
-	void setCoords(VarCoords coords)
-	{
-		m_coords = coords;
 	}
 };
 
@@ -213,15 +204,32 @@ public:
 	using StmtPtrs = std::vector<StmtPtr>;
 
 	const StmtPtrs m_stmts;
-	const int m_depth;
 
-	BlockStmt(StmtPtrs stmts, int depth)
-		: m_stmts{ std::move(stmts) }, m_depth{ depth }
+	BlockStmt(StmtPtrs stmts)
+		: m_stmts{ std::move(stmts) }
 	{
 	}
 
 	void accept(StmtVisitor& visitor) override
 	{
 		visitor.visitBlockStmt(*this);
+	}
+};
+
+class KeywordStmt : public Stmt
+{
+public:
+	using ExprPtr = std::unique_ptr<Expr>;
+
+	ExprPtr m_keyword;
+
+	KeywordStmt(ExprPtr keyword)
+		: m_keyword{ std::move(keyword) }
+	{
+	}
+
+	void accept(StmtVisitor& visitor) override
+	{
+		visitor.visitKeywordStmt(*this);
 	}
 };

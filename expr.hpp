@@ -19,6 +19,7 @@ class Unary;
 class Grouping;
 class Literal;
 class Variable;
+class Keyword;
 
 class Visitor {
 public:
@@ -39,6 +40,8 @@ public:
 	virtual void visitVarExpr(Variable& expr) = 0;
 
 	virtual void visitLiteralExpr(Literal& expr) = 0;
+
+	virtual void visitKeywordExpr(Keyword& expr) = 0;
 };
 
 class Expr
@@ -207,94 +210,19 @@ public:
 		visitor.visitVarExpr(*this);
 	}
 };
-/*
-class ASTPrinter : public Visitor
+
+class Keyword : public Expr
 {
-private:
-	std::string result;
-
 public:
-	using ExprPtr = Expr*;
-	using Exprs = std::initializer_list<ExprPtr>;
+	Token m_name;
 
-	std::string print(Expr& expr)
+	Keyword(Token name)
+		: m_name{name}
 	{
-		expr.accept(*this);
-		return result;
 	}
 
-	void visitCommaExpr(CommaExpr& expr) override
+	void accept(Visitor& visitor) override
 	{
-		std::vector<ExprPtr> exprRawPtrs{};
-
-		for (const auto& subexpr : expr.m_exprPtrs)
-		{
-			exprRawPtrs.push_back(subexpr.get());
-		}
-
-		parenthesise(",", exprRawPtrs);
-	}
-
-	void visitTernaryExpr(Ternary& expr) override
-	{
-		parenthesise("?", { expr.m_condition.get(), expr.m_left.get(), expr.m_right.get() });
-	}
-
-	void visitBinaryExpr(Binary& expr) override
-	{
-		parenthesise(expr.m_op.m_lexeme, { expr.m_left.get(), expr.m_right.get() });
-	}
-
-	void visitGroupingExpr(Grouping& expr) override
-	{
-		parenthesise("", { expr.m_expression.get() });
-	}
-
-	void visitUnaryExpr(Unary& expr) override
-	{
-		parenthesise(expr.m_op.m_lexeme, { expr.m_right.get() });
-	}
-
-	void visitLiteralExpr(Literal& expr) override
-	{
-		result = TokenFxns::literalToStr(expr.m_value);
-	}
-
-	void visitVarExpr(Variable& expr) override
-	{
-		result = TokenFxns::literalToStr(expr.m_name.m_literal);
-	}
-
-	void parenthesise(std::string_view name, Exprs exprs)
-	{
-		std::string localResult = "(" + std::string(name);
-
-		for (const auto& expr : exprs)
-		{
-			localResult += " ";
-			expr->accept(*this);
-			localResult += result;
-		}
-
-		localResult += " )";
-
-		result = localResult;
-	}
-
-	void parenthesise(std::string_view name, const std::vector<ExprPtr>& exprs)
-	{
-		std::string localResult = "(" + std::string(name);
-
-		for (const auto& expr : exprs)
-		{
-			localResult += " ";
-			expr->accept(*this);
-			localResult += result;
-		}
-
-		localResult += " )";
-
-		result = localResult;
+		visitor.visitKeywordExpr(*this);
 	}
 };
-*/

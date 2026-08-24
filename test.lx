@@ -1,6 +1,10 @@
-var a = 1;
+for (var i = 0; i < 20; i += 1) 
 {
-	var a = a + 1;
-
-	print a;
+	if (i <= 3)
+	{
+		continue;
+	}
+	print i;
 }
+
+print "Out of loop";

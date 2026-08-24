@@ -32,11 +32,6 @@ private:
 	using VarCoords = std::pair<int, int>;
 	using enum TokenType;
 
-	Environment m_global;
-
-	int m_depth{ 0 };
-	int m_varIdx{ 0 };
-
 	const Tokens m_tokens;
 	int m_current{ 0 };
 
@@ -78,7 +73,7 @@ private:
 
 		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after expression.");
 
-		return std::make_unique<VarStmt>(name, std::move(initialiser), VarCoords{0, m_varIdx++});
+		return std::make_unique<VarStmt>(name, std::move(initialiser));
 	}
 
 	StmtPtr statement()
@@ -91,6 +86,7 @@ private:
 			if (match({ FOR })) return forStatement();
 			if (match({ PRINT })) return printStatement();
 			if (match({ INPUT })) return inputStatement();
+			if (match({ BREAK, CONTINUE })) return keywordStatement();
 
 			if (match({ ELIF, ELSE }))
 			{
@@ -113,27 +109,16 @@ private:
 	{
 		StmtPtrs stmtptrs{};
 
-		++m_depth;
-		int localIdx{ 0 };
-
 		while (!check({ RBRACE }) && !isAtEnd())
 		{
 			auto stmt{ declaration() };
-
-			if (auto varStmt = dynamic_cast<VarStmt*>(stmt.get()))
-			{
-				varStmt->setCoords({ m_depth, localIdx++ });
-			}
 
 			stmtptrs.push_back(std::move(stmt));
 		};
 
 		consume(RBRACE, EXIT_CODE::MISSING_CLOSED_BRACE, "Missing '}' after block instantiation.");
 
-		int blockDepth{ m_depth };
-		m_depth--;
-
-		return std::make_unique<BlockStmt>(std::move(stmtptrs), blockDepth);
+		return std::make_unique<BlockStmt>(std::move(stmtptrs));
 	}
 
 	StmtPtr ifStatement()
@@ -218,6 +203,15 @@ private:
 		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after identifier.");
 
 		return std::make_unique<InputStmt>(std::move(value));
+	}
+
+	StmtPtr keywordStatement()
+	{
+		ExprPtr keyw = std::make_unique<Keyword>(previous());
+
+		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after keyword.");
+
+		return std::make_unique<KeywordStmt>(std::move(keyw));
 	}
 
 	StmtPtr exprStatement()

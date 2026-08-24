@@ -30,7 +30,7 @@ enum class EXIT_CODE : int
 	EXPECTED_IDNTF,
 	EXPECTED_VAR,
 	EXPECTED_COND,
-
+	BREAK_NOT_IN_LOOP,
 	// runtime
 	TYPE_MISMATCH,
 	STR_MANIPULATION,
@@ -47,6 +47,9 @@ namespace ErrorFlag
 {
 	inline bool errorRaised{ false };
 }
+
+struct BreakSignal {};
+struct ContinueSignal{};
 
 class InterpreterException : public std::exception
 {

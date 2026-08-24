@@ -19,12 +19,12 @@ private:
 
 	std::unordered_map<std::string, TokenType> keywords =
 	{
-		{"and", AND}, {"class", CLASS}, {"else", ELSE},
-		{"elif", ELIF}, {"false", FALSE}, {"fn", FN},
-		{"for", FOR}, {"if", IF}, {"nil", NIL}, {"or", OR},
-		{"print", PRINT}, {"input", INPUT}, {"return", RETURN}, {"super", SUPER},
-		{"this", THIS}, {"true", TRUE}, {"var", VAR},
-		{"while", WHILE}
+		{"and", AND}, {"break", BREAK}, {"continue", CONTINUE},
+		{ "class", CLASS }, {"else", ELSE},{"elif", ELIF},
+		{"false", FALSE}, {"fn", FN}, {"for", FOR}, {"if", IF},
+		{"nil", NIL}, {"or", OR}, {"print", PRINT}, {"input", INPUT},
+		{"return", RETURN}, {"super", SUPER}, {"this", THIS},
+		{"true", TRUE}, {"var", VAR}, {"while", WHILE}
 	};
 
 	// Data
@@ -159,6 +159,7 @@ private:
 
 	void string()
 	{
+		// Advance through characters
 		while (peek() != '"' && !isAtEnd())
 		{
 			if (peek() == '\n') ++m_lineNum;

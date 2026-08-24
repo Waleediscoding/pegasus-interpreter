@@ -18,7 +18,9 @@ private:
 
 	LitVal m_result;
 
-	Environment m_env{};
+	std::shared_ptr<Environment> m_env{std::make_shared<Environment>()};
+
+	bool inLoop{ false };
 
 	// Statement evaluation
 	LitVal getExprValue(PrintStmt& stmt)
@@ -37,7 +39,7 @@ private:
 	{
 		LitVal value = eval(stmt.m_initialiser.get());
 
-		m_env.define(stmt.coords(), stmt.m_name, value);
+		m_env->define(stmt.m_name, value);
 	}
 
 	void visitPrintStmt(PrintStmt& stmt) override
@@ -53,30 +55,55 @@ private:
 
 		Token name{ (*pVar).m_name };
 
-		if (!m_env.has(name))
-		{
-			std::string message = "Undeclared variable '" + name.m_lexeme + "'.";
-
-			throw RuntimeException(name, message, name.m_lineNum, EXIT_CODE::UNDCLD_VAR);
-		}
-
 		std::string line{ };
 
 		std::getline(std::cin >> std::ws, line);
 
 		LitVal value{ strToLit(line) };
 
-		m_env.define(name, value);
+		m_env->assign(name, value);
 	}
 
 	void visitBlockStmt(BlockStmt& stmt) override
 	{
-		for (auto& substmt : stmt.m_stmts)
+		// Reference to enclosing scope
+		std::shared_ptr<Environment> prev{ m_env };
+
+		if (!inLoop)
 		{
-			substmt.get()->accept(*this);
+			try
+			{
+				// Assigning new scope with the enclosing scope reference
+				m_env = std::make_shared<Environment>(prev);
+
+				for (auto& substmt : stmt.m_stmts)
+				{
+					substmt->accept(*this);
+				}
+			}
+			catch (...)
+			{
+				m_env = prev;
+				throw;
+			}
+		}
+		else
+		{
+			try
+			{
+				for (auto& substmt : stmt.m_stmts)
+				{
+					substmt->accept(*this);
+				}
+			}
+			catch (...)
+			{
+				m_env = prev;
+				throw;
+			}
 		}
 
-		m_env.pop(stmt.m_depth);
+		m_env = prev;
 	}
 
 	void visitIfStmt(IfStmt& stmt) override
@@ -93,7 +120,7 @@ private:
 			stmt.m_body.get()->accept(*this);
 			return;
 		}
-		else if (stmt.m_next.get())
+		else if (stmt.m_next)
 		{
 			stmt.m_next.get()->accept(*this);
 			return;
@@ -103,53 +130,115 @@ private:
 
 	void visitWhileStmt(WhileStmt& stmt) override
 	{
-		LitVal condition{ eval(stmt.m_condition.get()) };
+		inLoop = true;
 
-		auto* pCondition = std::get_if<bool>(&condition);
+		std::shared_ptr<Environment> prev{ m_env };
 
-		if (!pCondition)
-			throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
-
-		while (*pCondition)
+		try
 		{
-			stmt.m_body.get()->accept(*this);
+			m_env = std::shared_ptr<Environment>(prev);
 
-			condition = eval(stmt.m_condition.get());
+			LitVal condition{ eval(stmt.m_condition.get()) };
 
-			pCondition = std::get_if<bool>(&condition);
+			auto* pCondition = std::get_if<bool>(&condition);
+
+			if (!pCondition)
+				throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
+
+			while (*pCondition)
+			{
+				try
+				{
+					stmt.m_body->accept(*this);
+				}
+				catch (ContinueSignal&)
+				{
+					continue;
+				}
+
+
+				condition = eval(stmt.m_condition.get());
+
+				pCondition = std::get_if<bool>(&condition);
+			}
 		}
+		catch (BreakSignal&)
+		{
+			// Exits out of loop
+		}
+		catch (...)
+		{
+			m_env = prev;
+			throw;
+		}
+
+		m_env = prev;
+
+		inLoop = false;
 	}
 
 	void visitForStmt(ForStmt& stmt) override
-	{		
-		stmt.m_init.get()->accept(*this);
+	{
+		inLoop = true;
 
-		LitVal condition{ eval(stmt.m_condition.get()->m_expression.get()) };
+		std::shared_ptr<Environment> prev{ m_env };
 
-		LitVal initValue{ eval(stmt.m_init.get()->m_initialiser.get()) };
-
-		auto* pCondition = std::get_if<bool>(&condition);
-
-		auto* pInitValue = std::get_if<double>(&initValue);
-
-		if (!pCondition)
-			throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
-
-		if (!pInitValue)
-			throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to an integer/float.", stmt.m_lineNum, false);
-
-		for (double i{ *pInitValue }; *pCondition; eval(stmt.m_expr.get()))
+		try
 		{
+			m_env = std::make_shared<Environment>(prev);
 
-			condition = eval(stmt.m_condition.get()->m_expression.get());
+			stmt.m_init->accept(*this);
 
-			pCondition = std::get_if<bool>(&condition);
+			LitVal condition{ eval(stmt.m_condition->m_expression.get()) };
 
-			if (!(*pCondition)) break;
+			LitVal initValue{ eval(stmt.m_init->m_initialiser.get()) };
 
-			stmt.m_body.get()->accept(*this);
+			auto* pCondition = std::get_if<bool>(&condition);
 
+			auto* pInitValue = std::get_if<double>(&initValue);
+
+			if (!pCondition)
+				throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
+
+			if (!pInitValue)
+				throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to an integer/float.", stmt.m_lineNum, false);
+
+			for (double i{ *pInitValue }; *pCondition; eval(stmt.m_expr.get()))
+			{
+				condition = eval(stmt.m_condition->m_expression.get());
+
+				pCondition = std::get_if<bool>(&condition);
+
+				if (!(*pCondition)) break;
+
+				try
+				{
+					stmt.m_body->accept(*this);
+				}
+				catch (ContinueSignal&)
+				{
+					continue;
+				}
+			}
 		}
+		catch (BreakSignal&)
+		{
+			// Exits out of loop
+		}
+		catch (...)
+		{
+			m_env = prev;
+			throw;
+		}
+
+		m_env = prev;
+
+		inLoop = false;
+	}
+
+	void visitKeywordStmt(KeywordStmt& stmt) override
+	{
+		stmt.m_keyword->accept(*this);
 	}
 
 	void visitExprStmt(ExprStmt& stmt) override
@@ -301,10 +390,12 @@ private:
 
 		case TokenType::EQUAL_EQUAL:
 			m_result = left == right;
+			return;
 			break;
 
 		case TokenType::BANG_EQUAL:
 			m_result = left != right;
+			return;
 			break;
 
 		case TokenType::AND:
@@ -336,33 +427,25 @@ private:
 	void visitAssignExpr(Assignment& expr) override
 	{
 		std::unique_ptr<Binary> temp = std::make_unique<Binary>(
-			std::make_unique<Literal>(m_env.value(expr.m_name)),
+			std::make_unique<Literal>(m_env->value(expr.m_name)),
 			expr.m_op,
 			std::make_unique<Literal>(eval(expr.m_expression.get()))
 		);
 
-		if (m_env.has(expr.m_name))
-			switch (expr.m_op.m_type)
-			{
-			// Assignment
-			case TokenType::EQUAL:
-				m_env.define(expr.m_name, eval(expr.m_expression.get()));
-				return;
-
-			// Assignment via operator
-			case TokenType::PLUS_EQUAL:
-			case TokenType::MINUS_EQUAL:
-			case TokenType::ASTK_EQUAL:
-			case TokenType::SLASH_EQUAL:
-				m_env.define(expr.m_name, eval(temp.get()));
-				return;
-			}
-			
-		else
+		switch (expr.m_op.m_type)
 		{
-			std::string message = "Undeclared variable '" + expr.m_name.m_lexeme + "'.";
+		// Assignment
+		case TokenType::EQUAL:
+			m_env->assign(expr.m_name, eval(expr.m_expression.get()));
+			return;
 
-			throw RuntimeException(expr.m_name, message, expr.m_op.m_lineNum, EXIT_CODE::UNDCLD_VAR);
+		// Assignment via operator
+		case TokenType::PLUS_EQUAL:
+		case TokenType::MINUS_EQUAL:
+		case TokenType::ASTK_EQUAL:
+		case TokenType::SLASH_EQUAL:
+			m_env->assign(expr.m_name, eval(temp.get()));
+			return;
 		}
 	}
 
@@ -398,16 +481,27 @@ private:
 		std::string message = "Incorrect type(s) for operation '" + expr.m_op.m_lexeme + "'";
 
 		throw RuntimeException(expr.m_op, message, expr.m_op.m_lineNum, EXIT_CODE::TYPE_MISMATCH);
-	}
+	} 
 
 	void visitVarExpr(Variable& expr) override
 	{
-		m_result = m_env.value(expr.m_name);
+		m_result = m_env->value(expr.m_name);
 	}
 
 	void visitLiteralExpr(Literal& expr) override
 	{
 		m_result = expr.m_value;
+	}
+
+	void visitKeywordExpr(Keyword& expr) override
+	{
+		if (!inLoop)
+			throw InterpreterException(EXIT_CODE::BREAK_NOT_IN_LOOP, "Keyword outside of a loop.", expr.m_name.m_lineNum, false);
+
+		if (expr.m_name.m_type == TokenType::BREAK)
+			throw BreakSignal();
+		else if (expr.m_name.m_type == TokenType::CONTINUE)
+			throw ContinueSignal();
 	}
 
 	LitVal strToLit(const std::string& line)
