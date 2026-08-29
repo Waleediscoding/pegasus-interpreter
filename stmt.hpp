@@ -17,6 +17,7 @@ class WhileStmt;
 class ForStmt;
 class BlockStmt;
 class KeywordStmt;
+class FunctionStmt;
 
 class StmtVisitor
 {
@@ -38,6 +39,8 @@ public:
 	virtual void visitBlockStmt(BlockStmt& stmt) = 0;
 
 	virtual void visitKeywordStmt(KeywordStmt& stmt) = 0;
+
+	virtual void visitFunctionStmt(FunctionStmt& stmt) = 0;
 };
 
 class Stmt
@@ -231,5 +234,27 @@ public:
 	void accept(StmtVisitor& visitor) override
 	{
 		visitor.visitKeywordStmt(*this);
+	}
+};
+
+class FunctionStmt : public Stmt
+{
+public:
+	using Tokens = std::vector<Token>;
+	using StmtPtr = std::unique_ptr<Stmt>;
+
+	Token m_name;
+
+	Tokens m_params;
+	StmtPtr m_block;
+
+	FunctionStmt(Token name, Tokens params, StmtPtr block)
+		: m_name{ name }, m_params{ std::move(params) }, m_block{ std::move(block) }
+	{
+	}
+
+	void accept(StmtVisitor& visitor) override
+	{
+		visitor.visitFunctionStmt(*this);
 	}
 };

@@ -20,6 +20,7 @@ class Grouping;
 class Literal;
 class Variable;
 class Keyword;
+class Call;
 
 class Visitor {
 public:
@@ -42,6 +43,8 @@ public:
 	virtual void visitLiteralExpr(Literal& expr) = 0;
 
 	virtual void visitKeywordExpr(Keyword& expr) = 0;
+
+	virtual void visitCallExpr(Call& expr) = 0;
 };
 
 class Expr
@@ -224,5 +227,27 @@ public:
 	void accept(Visitor& visitor) override
 	{
 		visitor.visitKeywordExpr(*this);
+	}
+};
+
+class Call : public Expr
+{
+public:
+	using ExprPtr = std::unique_ptr<Expr>;
+	using CommaExprPtr = std::unique_ptr<CommaExpr>;
+
+	ExprPtr m_callee;
+
+	Token m_paren;
+	CommaExprPtr m_args;
+
+	Call(ExprPtr callee, Token paren, CommaExprPtr args)
+		: m_callee{ std::move(callee) }, m_paren{ paren }, m_args{ std::move(args) }
+	{
+	}
+
+	void accept(Visitor& visitor) override
+	{
+		visitor.visitCallExpr(*this);
 	}
 };

@@ -5,6 +5,7 @@
 #include <format>
 #include <type_traits>
 #include <any>
+#include <memory>
 
 #include "tokentype.hpp"
 #include "litval.hpp"
@@ -12,9 +13,6 @@
 class Token
 {
 public:
-
-	LitVal loxNil{ nullptr };
-
 	TokenType m_type;
 	std::string m_lexeme;
 
@@ -30,8 +28,6 @@ public:
 
 namespace TokenFxns
 {
-	using LitVal = std::variant<double, bool, std::string, std::nullptr_t>;
-
 	std::string literalToStr(LitVal literal);
 
 	std::string toString(Token token);

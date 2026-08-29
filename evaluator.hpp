@@ -8,6 +8,7 @@
 #include "stmt.hpp"
 #include "token.hpp"
 #include "environment.hpp"
+#include "callable.hpp"
 #include "litval.hpp"
 
 class Evaluator : public Visitor, public StmtVisitor
@@ -18,7 +19,7 @@ private:
 
 	LitVal m_result;
 
-	std::shared_ptr<Environment> m_env{std::make_shared<Environment>()};
+	std::shared_ptr<Environment> m_env{ globals };
 
 	bool inLoop{ false };
 
@@ -39,7 +40,14 @@ private:
 	{
 		LitVal value = eval(stmt.m_initialiser.get());
 
-		m_env->define(stmt.m_name, value);
+		m_env->define(stmt.m_name.m_lexeme, value);
+	}
+
+	void visitFunctionStmt(FunctionStmt& stmt) override
+	{
+		auto userFunction{ std::make_shared<Function>(stmt.m_name.m_lexeme, &stmt) };
+
+		m_env->define(userFunction->m_callee, std::move(userFunction));
 	}
 
 	void visitPrintStmt(PrintStmt& stmt) override
@@ -504,6 +512,33 @@ private:
 			throw ContinueSignal();
 	}
 
+	void visitCallExpr(Call& expr) override
+	{
+		const auto pIdtf = static_cast<Variable*>(expr.m_callee.get());
+
+		std::vector<LitVal> resolvedArgs{};
+
+		for (auto& arg : expr.m_args->m_exprPtrs)
+		{
+			resolvedArgs.push_back(eval(arg.get()));
+		}
+
+		LitVal value{ m_env->value(pIdtf->m_name) };
+
+		const auto pFunc{ std::get_if<std::shared_ptr<Callable>>(&value) };
+		 
+		std::shared_ptr<Callable> func{ *pFunc };
+
+		if (resolvedArgs.size() != func->arity())
+		{
+			std::string message = std::format("Expected {} arguments but received {}.", func->arity(), resolvedArgs.size());
+
+			throw RuntimeException(expr.m_paren, message, expr.m_paren.m_lineNum, EXIT_CODE::INCORRECT_FXN_ARGS);
+		}
+
+		m_result = func->call(*this, resolvedArgs);
+	}
+
 	LitVal strToLit(const std::string& line)
 	{
 		if (line == "true") return true;
@@ -559,6 +594,15 @@ private:
 	}
 
 public:
+	std::shared_ptr<Environment> globals{ std::make_shared<Environment>() };
+
+	Evaluator()
+	{
+		// Native function
+		auto clockFunc{ std::make_shared<Clock>("clock") };
+
+		m_env->define(clockFunc->m_callee, clockFunc);
+	}
 	void interpret(const StmtPtrs& stmts)
 	{
 		try
@@ -572,5 +616,27 @@ public:
 		{
 			e.report();
 		}
+	}
+
+	void executeBlock(Stmt* block, std::shared_ptr<Environment>& env)
+	{
+		auto prev{ m_env };
+
+		try
+		{
+			env = std::make_shared<Environment>(prev);
+
+			m_env = env;
+
+			block->accept(*this);
+		}
+		catch (...)
+		{
+			m_env = prev;
+
+			throw;
+		}
+
+		m_env = prev;
 	}
 };

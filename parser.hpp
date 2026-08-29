@@ -29,7 +29,6 @@ private:
 	using Tokens = std::vector<Token>;
 	using TokenTypes = std::initializer_list<TokenType>;
 
-	using VarCoords = std::pair<int, int>;
 	using enum TokenType;
 
 	const Tokens m_tokens;
@@ -50,7 +49,7 @@ private:
 		try
 		{
 			if (match({ VAR })) return varDeclaration();
-
+			if (match({ FN })) return funcDeclaration();
 			return statement();
 		}
 		catch (InterpreterException& e)
@@ -74,6 +73,31 @@ private:
 		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after expression.");
 
 		return std::make_unique<VarStmt>(name, std::move(initialiser));
+	}
+
+	StmtPtr funcDeclaration()
+	{
+		Token name{ consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'fn' keyword.") };
+
+		consume(LPAREN, EXIT_CODE::MISSING_OPEN_BRACKET, "Expected '(' after identifier.");
+
+		Tokens parameters{};
+
+		if (!check(RPAREN))
+		{
+			do
+			{
+				parameters.push_back(consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'fn' keyword."));
+			} while (match({ COMMA }));
+		}
+
+		consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Expected ')' after arguments.");
+
+		consume(LBRACE, EXIT_CODE::MISSING_OPEN_BRACE, "Expected '{' to initiate a block.");
+
+		StmtPtr block{ blockStatement() };
+
+		return std::make_unique<FunctionStmt>(name, std::move(parameters), std::move(block));
 	}
 
 	StmtPtr statement()
@@ -251,6 +275,23 @@ private:
 		return expr;
 	}
 
+	ExprPtr arguments()
+	{
+		ExprPtrs exprs{};
+
+		exprs.push_back(ternary());
+
+		if (match({ COMMA }))
+		{
+			do
+			{
+				exprs.push_back(ternary());
+			} while (match({ COMMA }));
+		}
+
+		return std::make_unique<CommaExpr>(std::move(exprs), peek().m_lineNum);
+	}
+
 	ExprPtr ternary()
 	{
 		ExprPtr expr{ assignment() };
@@ -362,12 +403,33 @@ private:
 
 			ExprPtr right{ unary() };
 
-			ExprPtr unary = std::make_unique<Unary>(op, std::move(right));
-
-			return unary;
+			return std::make_unique<Unary>(op, std::move(right));
 		}
 
-		return primary();
+		return call();
+	}
+
+	ExprPtr call()
+	{
+		ExprPtr expr{ primary() };
+
+		if (match({ LPAREN }))
+		{
+			auto* pIdtf = dynamic_cast<Variable*>(expr.get());
+			
+			if (!pIdtf)
+				throw RuntimeException(peek(), "Object cannot be called. Expected an identifier.", peek().m_lineNum, EXIT_CODE::EXPECTED_IDNTF);
+
+			ExprPtr args{ arguments() };
+
+			std::unique_ptr<CommaExpr> pArgs{ static_cast<CommaExpr*>(args.get()) };
+
+			Token paren{ consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Missing ')' after argument(s).") };
+
+			return std::make_unique<Call>(std::move(expr), paren, std::move(pArgs));
+		}
+
+		return expr;
 	}
 
 	ExprPtr primary()

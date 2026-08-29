@@ -1,4 +1,5 @@
 #include "token.hpp"
+#include "callable.hpp"
 
 namespace TokenFxns
 {
@@ -15,8 +16,12 @@ namespace TokenFxns
 					return arg ? "true" : "false";
 				else if constexpr (std::is_same_v<T, double>)
 					return std::format("{}", static_cast<double>(arg));
-				else
+				else if constexpr (std::is_same_v<T, std::shared_ptr<Callable>>)
+					return arg ? arg->toString() : "nil";
+				else if constexpr (std::is_same_v < T, std::string>)
 					return arg;
+				else
+					static_assert(!sizeof(T*), "Unresolved type in LitVal visitor.")
 			},
 			literal);
 

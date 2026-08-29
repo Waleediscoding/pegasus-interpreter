@@ -2,5 +2,8 @@
 
 #include <variant>
 #include <string>
+#include <memory>
 
-using LitVal = std::variant<double, bool, std::string, std::nullptr_t>;
+class Callable;
+
+using LitVal = std::variant<double, bool, std::string, std::shared_ptr<Callable>, std::nullptr_t>;
