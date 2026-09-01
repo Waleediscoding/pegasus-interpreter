@@ -103,7 +103,7 @@ private:
 	void visitReturnStmt(ReturnStmt& stmt) override
 	{
 		if (!inFunc)
-			throw InterpreterException(EXIT_CODE::RET_NOT_IN_FXN, "Keyword 'return' outside of a loop.", stmt.m_lineNum, false);
+			throw InterpreterException(EXIT_CODE::RET_NOT_IN_FXN, "Keyword 'return' outside of a function body.", stmt.m_lineNum, false);
 		
 		if (!stmt.m_expression)
 			throw ReturnSignal(nullptr);
@@ -617,7 +617,7 @@ public:
 		inFunc = true;
 
 		auto prev{m_env};
-		
+
 		try
 		{
 			m_env = std::make_shared<Environment>(env, prev);
