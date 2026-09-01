@@ -13,112 +13,108 @@
 
 class Evaluator : public Visitor, public StmtVisitor
 {
+public:
+	std::shared_ptr<Environment> globals;
+
 private:
 	using StmtPtr = std::unique_ptr<Stmt>;
 	using StmtPtrs = std::vector<StmtPtr>;
 
 	LitVal m_result;
 
-	std::shared_ptr<Environment> m_env{ globals };
+	std::shared_ptr<Environment> m_env;
 
-	bool inLoop{ false };
+	bool inLoop{false};
+	bool inFunc{false};
 
 	// Statement evaluation
-	LitVal getExprValue(PrintStmt& stmt)
+	LitVal getExprValue(PrintStmt &stmt)
 	{
 		stmt.m_expression.get()->accept(*this);
 		return m_result;
 	}
 
-	LitVal getExprValue(ExprStmt& stmt)
+	LitVal getExprValue(ExprStmt &stmt)
 	{
 		stmt.m_expression.get()->accept(*this);
 		return m_result;
 	}
 
-	void visitVarStmt(VarStmt& stmt) override
+	void visitVarStmt(VarStmt &stmt) override
 	{
 		LitVal value = eval(stmt.m_initialiser.get());
 
 		m_env->define(stmt.m_name.m_lexeme, value);
 	}
 
-	void visitFunctionStmt(FunctionStmt& stmt) override
+	void visitFunctionStmt(FunctionStmt &stmt) override
 	{
-		auto userFunction{ std::make_shared<Function>(stmt.m_name.m_lexeme, &stmt) };
+		auto userFunction{std::make_shared<Function>(stmt.m_name.m_lexeme, &stmt)};
 
-		m_env->define(userFunction->m_callee, std::move(userFunction));
+		m_env->define(stmt.m_name.m_lexeme, std::move(userFunction));
 	}
 
-	void visitPrintStmt(PrintStmt& stmt) override
+	void visitPrintStmt(PrintStmt &stmt) override
 	{
-		LitVal value{ getExprValue(stmt) };
+		LitVal value{getExprValue(stmt)};
 
 		std::cout << TokenFxns::literalToStr(value) << '\n';
 	}
 
-	void visitInputStmt(InputStmt& stmt) override
+	void visitInputStmt(InputStmt &stmt) override
 	{
-		auto* pVar = static_cast<Variable*>(stmt.m_expression.get());
+		auto *pVar = static_cast<Variable *>(stmt.m_expression.get());
 
-		Token name{ (*pVar).m_name };
+		Token name{(*pVar).m_name};
 
-		std::string line{ };
+		std::string line{};
 
 		std::getline(std::cin >> std::ws, line);
 
-		LitVal value{ strToLit(line) };
+		LitVal value{strToLit(line)};
 
 		m_env->assign(name, value);
 	}
 
-	void visitBlockStmt(BlockStmt& stmt) override
+	void visitBlockStmt(BlockStmt &stmt) override
 	{
 		// Reference to enclosing scope
-		std::shared_ptr<Environment> prev{ m_env };
+		std::shared_ptr<Environment> prev{m_env};
 
-		if (!inLoop)
+		try
 		{
-			try
-			{
-				// Assigning new scope with the enclosing scope reference
-				m_env = std::make_shared<Environment>(prev);
+			// Assigning new scope with the enclosing scope reference
+			m_env = std::make_shared<Environment>(prev);
 
-				for (auto& substmt : stmt.m_stmts)
-				{
-					substmt->accept(*this);
-				}
-			}
-			catch (...)
+			for (auto &substmt : stmt.m_stmts)
 			{
-				m_env = prev;
-				throw;
+				substmt->accept(*this);
 			}
 		}
-		else
+		catch (...)
 		{
-			try
-			{
-				for (auto& substmt : stmt.m_stmts)
-				{
-					substmt->accept(*this);
-				}
-			}
-			catch (...)
-			{
-				m_env = prev;
-				throw;
-			}
+			m_env = prev;
+			throw;
 		}
 
 		m_env = prev;
 	}
 
-	void visitIfStmt(IfStmt& stmt) override
+	void visitReturnStmt(ReturnStmt& stmt) override
 	{
-		LitVal value{ eval(stmt.m_condition.get()) };
+		if (!inFunc)
+			throw InterpreterException(EXIT_CODE::RET_NOT_IN_FXN, "Keyword 'return' outside of a loop.", stmt.m_lineNum, false);
+		
+		if (!stmt.m_expression)
+			throw ReturnSignal(nullptr);
+		
+		throw ReturnSignal(eval(stmt.m_expression.get()));
+	}
+	void visitIfStmt(IfStmt &stmt) override
+	{
+		LitVal value{eval(stmt.m_condition.get())};
 
-		const auto& pBool = std::get_if<bool>(&value);
+		const auto &pBool = std::get_if<bool>(&value);
 
 		if (!pBool)
 			throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
@@ -133,22 +129,21 @@ private:
 			stmt.m_next.get()->accept(*this);
 			return;
 		}
-
 	}
 
-	void visitWhileStmt(WhileStmt& stmt) override
+	void visitWhileStmt(WhileStmt &stmt) override
 	{
 		inLoop = true;
 
-		std::shared_ptr<Environment> prev{ m_env };
+		std::shared_ptr<Environment> prev{m_env};
 
 		try
 		{
-			m_env = std::shared_ptr<Environment>(prev);
+			m_env = std::make_shared<Environment>(prev);
 
-			LitVal condition{ eval(stmt.m_condition.get()) };
+			LitVal condition{eval(stmt.m_condition.get())};
 
-			auto* pCondition = std::get_if<bool>(&condition);
+			auto *pCondition = std::get_if<bool>(&condition);
 
 			if (!pCondition)
 				throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
@@ -159,18 +154,17 @@ private:
 				{
 					stmt.m_body->accept(*this);
 				}
-				catch (ContinueSignal&)
+				catch (ContinueSignal &)
 				{
 					continue;
 				}
-
 
 				condition = eval(stmt.m_condition.get());
 
 				pCondition = std::get_if<bool>(&condition);
 			}
 		}
-		catch (BreakSignal&)
+		catch (BreakSignal &)
 		{
 			// Exits out of loop
 		}
@@ -185,11 +179,11 @@ private:
 		inLoop = false;
 	}
 
-	void visitForStmt(ForStmt& stmt) override
+	void visitForStmt(ForStmt &stmt) override
 	{
 		inLoop = true;
 
-		std::shared_ptr<Environment> prev{ m_env };
+		std::shared_ptr<Environment> prev{m_env};
 
 		try
 		{
@@ -197,13 +191,13 @@ private:
 
 			stmt.m_init->accept(*this);
 
-			LitVal condition{ eval(stmt.m_condition->m_expression.get()) };
+			LitVal condition{eval(stmt.m_condition->m_expression.get())};
 
-			LitVal initValue{ eval(stmt.m_init->m_initialiser.get()) };
+			LitVal initValue{eval(stmt.m_init->m_initialiser.get())};
 
-			auto* pCondition = std::get_if<bool>(&condition);
+			auto *pCondition = std::get_if<bool>(&condition);
 
-			auto* pInitValue = std::get_if<double>(&initValue);
+			auto *pInitValue = std::get_if<double>(&initValue);
 
 			if (!pCondition)
 				throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to a boolean.", stmt.m_lineNum, false);
@@ -211,25 +205,26 @@ private:
 			if (!pInitValue)
 				throw InterpreterException(EXIT_CODE::TYPE_MISMATCH, "Expression must evaluate to an integer/float.", stmt.m_lineNum, false);
 
-			for (double i{ *pInitValue }; *pCondition; eval(stmt.m_expr.get()))
+			for (double i{*pInitValue}; *pCondition; eval(stmt.m_expr.get()))
 			{
 				condition = eval(stmt.m_condition->m_expression.get());
 
 				pCondition = std::get_if<bool>(&condition);
 
-				if (!(*pCondition)) break;
+				if (!(*pCondition))
+					break;
 
 				try
 				{
 					stmt.m_body->accept(*this);
 				}
-				catch (ContinueSignal&)
+				catch (ContinueSignal &)
 				{
 					continue;
 				}
 			}
 		}
-		catch (BreakSignal&)
+		catch (BreakSignal &)
 		{
 			// Exits out of loop
 		}
@@ -244,27 +239,27 @@ private:
 		inLoop = false;
 	}
 
-	void visitKeywordStmt(KeywordStmt& stmt) override
+	void visitKeywordStmt(KeywordStmt &stmt) override
 	{
 		stmt.m_keyword->accept(*this);
 	}
 
-	void visitExprStmt(ExprStmt& stmt) override
+	void visitExprStmt(ExprStmt &stmt) override
 	{
 		getExprValue(stmt);
 	}
 
 	// Expression evaluation
-	LitVal eval(Expr* expr)
+	LitVal eval(Expr *expr)
 	{
 		expr->accept(*this);
 
 		return m_result;
 	}
 
-	void visitCommaExpr(CommaExpr& expr) override
+	void visitCommaExpr(CommaExpr &expr) override
 	{
-		size_t penultimateIdx{ expr.m_exprPtrs.size() - 1 };
+		size_t penultimateIdx{expr.m_exprPtrs.size() - 1};
 
 		for (size_t i{}; i < penultimateIdx; ++i)
 		{
@@ -276,12 +271,11 @@ private:
 		m_result = eval(expr.m_exprPtrs[penultimateIdx].get());
 	}
 
-	void visitTernaryExpr(Ternary& expr) override
+	void visitTernaryExpr(Ternary &expr) override
 	{
-		LitVal condition{ eval(expr.m_condition.get()) };
-		LitVal thenBranch{ eval(expr.m_left.get()) };
-		LitVal elseBranch{ eval(expr.m_right.get()) };
-
+		LitVal condition{eval(expr.m_condition.get())};
+		LitVal thenBranch{eval(expr.m_left.get())};
+		LitVal elseBranch{eval(expr.m_right.get())};
 
 		const auto pCondition = std::get_if<bool>(&condition);
 
@@ -291,10 +285,10 @@ private:
 		m_result = (*pCondition) ? thenBranch : elseBranch;
 	}
 
-	void visitBinaryExpr(Binary& expr) override
+	void visitBinaryExpr(Binary &expr) override
 	{
-		LitVal left{ eval(expr.m_left.get()) };
-		LitVal right{ eval(expr.m_right.get()) };
+		LitVal left{eval(expr.m_left.get())};
+		LitVal right{eval(expr.m_right.get())};
 
 		// Returns ptr to obj if true, else null ptr
 		const auto pLeftDb = std::get_if<double>(&left);
@@ -308,9 +302,6 @@ private:
 
 		switch (expr.m_op.m_type)
 		{
-		case TokenType::EQUAL:
-
-
 		case TokenType::PLUS:
 		case TokenType::PLUS_EQUAL:
 			if (pLeftDb && pRightDb)
@@ -432,13 +423,12 @@ private:
 		throw RuntimeException(expr.m_op, message, expr.m_op.m_lineNum, EXIT_CODE::TYPE_MISMATCH);
 	}
 
-	void visitAssignExpr(Assignment& expr) override
+	void visitAssignExpr(Assignment &expr) override
 	{
 		std::unique_ptr<Binary> temp = std::make_unique<Binary>(
 			std::make_unique<Literal>(m_env->value(expr.m_name)),
 			expr.m_op,
-			std::make_unique<Literal>(eval(expr.m_expression.get()))
-		);
+			std::make_unique<Literal>(eval(expr.m_expression.get())));
 
 		switch (expr.m_op.m_type)
 		{
@@ -457,14 +447,14 @@ private:
 		}
 	}
 
-	void visitGroupingExpr(Grouping& expr) override
+	void visitGroupingExpr(Grouping &expr) override
 	{
 		m_result = eval(expr.m_expression.get());
 	}
 
-	void visitUnaryExpr(Unary& expr) override
+	void visitUnaryExpr(Unary &expr) override
 	{
-		LitVal right{ eval(expr.m_right.get()) };
+		LitVal right{eval(expr.m_right.get())};
 
 		switch (expr.m_op.m_type)
 		{
@@ -489,22 +479,22 @@ private:
 		std::string message = "Incorrect type(s) for operation '" + expr.m_op.m_lexeme + "'";
 
 		throw RuntimeException(expr.m_op, message, expr.m_op.m_lineNum, EXIT_CODE::TYPE_MISMATCH);
-	} 
+	}
 
-	void visitVarExpr(Variable& expr) override
+	void visitVarExpr(Variable &expr) override
 	{
 		m_result = m_env->value(expr.m_name);
 	}
 
-	void visitLiteralExpr(Literal& expr) override
+	void visitLiteralExpr(Literal &expr) override
 	{
 		m_result = expr.m_value;
 	}
 
-	void visitKeywordExpr(Keyword& expr) override
+	void visitKeywordExpr(Keyword &expr) override
 	{
 		if (!inLoop)
-			throw InterpreterException(EXIT_CODE::BREAK_NOT_IN_LOOP, "Keyword outside of a loop.", expr.m_name.m_lineNum, false);
+			throw InterpreterException(EXIT_CODE::BREAK_NOT_IN_LOOP, "Keyword '" + std::string(expr.m_name.m_lexeme) + "' outside of a loop.", expr.m_name.m_lineNum, false);
 
 		if (expr.m_name.m_type == TokenType::BREAK)
 			throw BreakSignal();
@@ -512,26 +502,29 @@ private:
 			throw ContinueSignal();
 	}
 
-	void visitCallExpr(Call& expr) override
+	void visitCallExpr(Call &expr) override
 	{
-		const auto pIdtf = static_cast<Variable*>(expr.m_callee.get());
+		const auto pIdtf = static_cast<Variable *>(expr.m_callee.get());
 
 		std::vector<LitVal> resolvedArgs{};
 
-		for (auto& arg : expr.m_args->m_exprPtrs)
+		for (auto &arg : expr.m_args->m_exprPtrs)
 		{
 			resolvedArgs.push_back(eval(arg.get()));
 		}
 
-		LitVal value{ m_env->value(pIdtf->m_name) };
+		LitVal value{m_env->value(pIdtf->m_name)};
 
-		const auto pFunc{ std::get_if<std::shared_ptr<Callable>>(&value) };
-		 
-		std::shared_ptr<Callable> func{ *pFunc };
+		const auto pFunc{std::get_if<std::shared_ptr<Callable>>(&value)};
+
+		if (!pFunc || !*pFunc)
+			throw RuntimeException(expr.m_paren, "Object cannot be called.", expr.m_paren.m_lineNum, EXIT_CODE::EXPECTED_CALLABLE);
+
+		std::shared_ptr<Callable> func{*pFunc};
 
 		if (resolvedArgs.size() != func->arity())
 		{
-			std::string message = std::format("Expected {} arguments but received {}.", func->arity(), resolvedArgs.size());
+			std::string message = std::format("Expected {} argument(s) but received {}.", func->arity(), resolvedArgs.size());
 
 			throw RuntimeException(expr.m_paren, message, expr.m_paren.m_lineNum, EXIT_CODE::INCORRECT_FXN_ARGS);
 		}
@@ -539,18 +532,21 @@ private:
 		m_result = func->call(*this, resolvedArgs);
 	}
 
-	LitVal strToLit(const std::string& line)
+	LitVal strToLit(const std::string &line)
 	{
-		if (line == "true") return true;
-		if (line == "false") return false;
-		if (line == "nil") return nullptr;
+		if (line == "true")
+			return true;
+		if (line == "false")
+			return false;
+		if (line == "nil")
+			return nullptr;
 
-		bool isNum{ true };
-		bool decimal{ false };
+		bool isNum{true};
+		bool decimal{false};
 
 		for (size_t i{}; i < line.length(); ++i)
 		{
-			char c{ line[i] };
+			char c{line[i]};
 
 			if (i == 0 && (c == '-' || c == '+'))
 			{
@@ -594,49 +590,48 @@ private:
 	}
 
 public:
-	std::shared_ptr<Environment> globals{ std::make_shared<Environment>() };
-
 	Evaluator()
+		: globals{std::make_shared<Environment>()}
 	{
+		m_env = globals;
 		// Native function
-		auto clockFunc{ std::make_shared<Clock>("clock") };
-
-		m_env->define(clockFunc->m_callee, clockFunc);
+		m_env->define("clock", std::make_shared<Clock>("clock"));
 	}
-	void interpret(const StmtPtrs& stmts)
+	void interpret(const StmtPtrs &stmts)
 	{
 		try
 		{
-			for (auto& stmt : stmts)
+			for (auto &stmt : stmts)
 			{
-				stmt.get()->accept(*this);
+				stmt->accept(*this);
 			}
 		}
-		catch (RuntimeException& e)
+		catch (RuntimeException &e)
 		{
 			e.report();
 		}
 	}
 
-	void executeBlock(Stmt* block, std::shared_ptr<Environment>& env)
+	void executeBlock(Stmt *block, std::shared_ptr<Environment> &env)
 	{
-		auto prev{ m_env };
+		inFunc = true;
 
+		auto prev{m_env};
+		
 		try
 		{
-			env = std::make_shared<Environment>(prev);
-
-			m_env = env;
+			m_env = std::make_shared<Environment>(env, prev);
 
 			block->accept(*this);
 		}
 		catch (...)
 		{
+			inFunc = false;
 			m_env = prev;
-
 			throw;
 		}
 
+		inFunc = false;
 		m_env = prev;
 	}
 };

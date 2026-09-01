@@ -22,40 +22,39 @@ class Variable;
 class Keyword;
 class Call;
 
-class Visitor {
+class Visitor
+{
 public:
 	virtual ~Visitor() = default;
 
-	virtual void visitCommaExpr(CommaExpr& expr) = 0;
+	virtual void visitCommaExpr(CommaExpr &expr) = 0;
 
-	virtual void visitTernaryExpr(Ternary& expr) = 0;
+	virtual void visitTernaryExpr(Ternary &expr) = 0;
 
-	virtual void visitBinaryExpr(Binary& expr) = 0;
+	virtual void visitBinaryExpr(Binary &expr) = 0;
 
-	virtual void visitAssignExpr(Assignment& expr) = 0;
+	virtual void visitAssignExpr(Assignment &expr) = 0;
 
-	virtual void visitGroupingExpr(Grouping& expr) = 0;
+	virtual void visitGroupingExpr(Grouping &expr) = 0;
 
-	virtual void visitUnaryExpr(Unary& expr) = 0;
+	virtual void visitUnaryExpr(Unary &expr) = 0;
 
-	virtual void visitVarExpr(Variable& expr) = 0;
+	virtual void visitVarExpr(Variable &expr) = 0;
 
-	virtual void visitLiteralExpr(Literal& expr) = 0;
+	virtual void visitLiteralExpr(Literal &expr) = 0;
 
-	virtual void visitKeywordExpr(Keyword& expr) = 0;
+	virtual void visitKeywordExpr(Keyword &expr) = 0;
 
-	virtual void visitCallExpr(Call& expr) = 0;
+	virtual void visitCallExpr(Call &expr) = 0;
 };
 
 class Expr
 {
 public:
-
 	virtual ~Expr() = default;
 
-	virtual void accept(Visitor& visitor) = 0;
+	virtual void accept(Visitor &visitor) = 0;
 };
-
 
 class CommaExpr : public Expr
 {
@@ -67,11 +66,11 @@ public:
 	const int m_lineNum;
 
 	CommaExpr(ExprPtrs exprPtrs, int lineNum)
-		: m_exprPtrs{ std::move(exprPtrs) }, m_lineNum{ lineNum }
+		: m_exprPtrs{std::move(exprPtrs)}, m_lineNum{lineNum}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitCommaExpr(*this);
 	}
@@ -88,12 +87,11 @@ public:
 	const int m_lineNum;
 
 	Ternary(ExprPtr condition, ExprPtr left, ExprPtr right, int lineNum)
-		: m_condition{std::move(condition)}, m_left{std::move(left)}, m_right{std::move(right)}
-		, m_lineNum{ lineNum }
+		: m_condition{std::move(condition)}, m_left{std::move(left)}, m_right{std::move(right)}, m_lineNum{lineNum}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitTernaryExpr(*this);
 	}
@@ -109,15 +107,14 @@ public:
 	const ExprPtr m_right;
 
 	Binary(ExprPtr left, Token op, ExprPtr right)
-		: m_left{ std::move(left) }, m_op{ op }, m_right{ std::move(right) }
+		: m_left{std::move(left)}, m_op{op}, m_right{std::move(right)}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitBinaryExpr(*this);
 	}
-
 };
 
 class Assignment : public Expr
@@ -130,11 +127,11 @@ public:
 	const ExprPtr m_expression;
 
 	Assignment(Token name, Token op, ExprPtr expression)
-		: m_name{ name }, m_op{ op }, m_expression{ std::move(expression) }
+		: m_name{name}, m_op{op}, m_expression{std::move(expression)}
 	{
 	}
 
-	void accept(Visitor& visitor)
+	void accept(Visitor &visitor)
 	{
 		visitor.visitAssignExpr(*this);
 	}
@@ -148,15 +145,14 @@ public:
 	const ExprPtr m_expression;
 
 	Grouping(ExprPtr expression)
-		: m_expression{ std::move(expression) }
+		: m_expression{std::move(expression)}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitGroupingExpr(*this);
 	}
-
 };
 
 class Unary : public Expr
@@ -168,11 +164,11 @@ public:
 	const ExprPtr m_right;
 
 	Unary(Token op, ExprPtr right)
-		: m_op{ op }, m_right{ std::move(right) }
+		: m_op{op}, m_right{std::move(right)}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitUnaryExpr(*this);
 	}
@@ -186,11 +182,11 @@ public:
 	const LitVal m_value;
 
 	Literal(LitVal value)
-		: m_value{ value }
+		: m_value{value}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitLiteralExpr(*this);
 	}
@@ -204,11 +200,11 @@ public:
 	Token m_name;
 
 	Variable(Token name)
-		: m_name{ name }
+		: m_name{name}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitVarExpr(*this);
 	}
@@ -224,7 +220,7 @@ public:
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitKeywordExpr(*this);
 	}
@@ -242,11 +238,11 @@ public:
 	CommaExprPtr m_args;
 
 	Call(ExprPtr callee, Token paren, CommaExprPtr args)
-		: m_callee{ std::move(callee) }, m_paren{ paren }, m_args{ std::move(args) }
+		: m_callee{std::move(callee)}, m_paren{paren}, m_args{std::move(args)}
 	{
 	}
 
-	void accept(Visitor& visitor) override
+	void accept(Visitor &visitor) override
 	{
 		visitor.visitCallExpr(*this);
 	}

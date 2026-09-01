@@ -13,7 +13,6 @@
 #include "exception_handler.hpp"
 #include "litval.hpp"
 
-
 class Parser
 {
 private:
@@ -32,7 +31,7 @@ private:
 	using enum TokenType;
 
 	const Tokens m_tokens;
-	int m_current{ 0 };
+	int m_current{0};
 
 	ExprPtr nullExpr()
 	{
@@ -48,11 +47,13 @@ private:
 	{
 		try
 		{
-			if (match({ VAR })) return varDeclaration();
-			if (match({ FN })) return funcDeclaration();
+			if (match({VAR}))
+				return varDeclaration();
+			if (match({FN}))
+				return funcDeclaration();
 			return statement();
 		}
-		catch (InterpreterException& e)
+		catch (InterpreterException &e)
 		{
 			e.report();
 
@@ -64,11 +65,12 @@ private:
 
 	StmtPtr varDeclaration()
 	{
-		Token name{ consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'var' keyword.") };
+		Token name{consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'var' keyword.")};
 
 		ExprPtr initialiser = std::make_unique<Literal>(nullptr);
 
-		if (match({ EQUAL })) initialiser = expression();
+		if (match({EQUAL}))
+			initialiser = expression();
 
 		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after expression.");
 
@@ -77,7 +79,7 @@ private:
 
 	StmtPtr funcDeclaration()
 	{
-		Token name{ consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'fn' keyword.") };
+		Token name{consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'fn' keyword.")};
 
 		consume(LPAREN, EXIT_CODE::MISSING_OPEN_BRACKET, "Expected '(' after identifier.");
 
@@ -88,14 +90,14 @@ private:
 			do
 			{
 				parameters.push_back(consume(IDENTIFIER, EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier after 'fn' keyword."));
-			} while (match({ COMMA }));
+			} while (match({COMMA}));
 		}
 
 		consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Expected ')' after arguments.");
 
 		consume(LBRACE, EXIT_CODE::MISSING_OPEN_BRACE, "Expected '{' to initiate a block.");
 
-		StmtPtr block{ blockStatement() };
+		StmtPtr block{blockStatement()};
 
 		return std::make_unique<FunctionStmt>(name, std::move(parameters), std::move(block));
 	}
@@ -104,24 +106,34 @@ private:
 	{
 		try
 		{
-			if (match({ LBRACE })) return blockStatement();
-			if (match({ IF })) return ifStatement();
-			if (match({ WHILE })) return whileStatement();
-			if (match({ FOR })) return forStatement();
-			if (match({ PRINT })) return printStatement();
-			if (match({ INPUT })) return inputStatement();
-			if (match({ BREAK, CONTINUE })) return keywordStatement();
+			if (match({LBRACE}))
+				return blockStatement();
+			if (match({RETURN}))
+				return returnStatement();
+			if (match({IF}))
+				return ifStatement();
+			if (match({WHILE}))
+				return whileStatement();
+			if (match({FOR}))
+				return forStatement();
+			if (match({PRINT}))
+				return printStatement();
+			if (match({INPUT}))
+				return inputStatement();
+			if (match({BREAK, CONTINUE}))
+				return keywordStatement();
 
-			if (match({ ELIF, ELSE }))
+			if (match({ELIF, ELSE}))
 			{
-				int lineNum{ peek().m_lineNum };
+				int lineNum{peek().m_lineNum};
 
 				skipBlock();
 				throw InterpreterException(EXIT_CODE::INVALID_KEYW, "Invalid if-statement.", lineNum, false);
 			}
+
 			return exprStatement();
 		}
-		catch (InterpreterException& e)
+		catch (InterpreterException &e)
 		{
 			e.report();
 
@@ -133,9 +145,9 @@ private:
 	{
 		StmtPtrs stmtptrs{};
 
-		while (!check({ RBRACE }) && !isAtEnd())
+		while (!check({RBRACE}) && !isAtEnd())
 		{
-			auto stmt{ declaration() };
+			auto stmt{declaration()};
 
 			stmtptrs.push_back(std::move(stmt));
 		};
@@ -145,26 +157,38 @@ private:
 		return std::make_unique<BlockStmt>(std::move(stmtptrs));
 	}
 
+	StmtPtr returnStatement()
+	{
+		if (match({SEMICOLON}))
+			return std::make_unique<ReturnStmt>(nullptr, peek().m_lineNum);
+
+		ExprPtr expr{expression()};
+
+		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after expression.");
+
+		return std::make_unique<ReturnStmt>(std::move(expr), peek().m_lineNum);
+	}
+
 	StmtPtr ifStatement()
 	{
 		consume(LPAREN, EXIT_CODE::MISSING_OPEN_BRACKET, "Expected a '(' before expression");
 
-		ExprPtr condition{ expression() };
+		ExprPtr condition{expression()};
 
 		consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Expected a ')' after expression");
 
-		StmtPtr body{ declaration() };
+		StmtPtr body{declaration()};
 
-		StmtPtr elif{ nullptr };
+		StmtPtr elif{nullptr};
 
-		if (match({ ELIF }))
+		if (match({ELIF}))
 		{
 			elif = ifStatement();
 		}
 
-		if (match({ ELSE }))
+		if (match({ELSE}))
 		{
-			StmtPtr elseStmt{ declaration() };
+			StmtPtr elseStmt{declaration()};
 
 			return std::make_unique<IfStmt>(std::move(condition), std::move(body), std::move(elseStmt), peek().m_lineNum);
 		}
@@ -176,11 +200,11 @@ private:
 	{
 		consume(LPAREN, EXIT_CODE::MISSING_OPEN_BRACKET, "Expected a '(' before expression");
 
-		ExprPtr condition{ expression() };
+		ExprPtr condition{expression()};
 
 		consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Expected a ')' after expression");
 
-		StmtPtr body{ declaration() };
+		StmtPtr body{declaration()};
 
 		return std::make_unique<WhileStmt>(std::move(condition), std::move(body), peek().m_lineNum);
 	}
@@ -189,26 +213,26 @@ private:
 	{
 		consume(LPAREN, EXIT_CODE::MISSING_OPEN_BRACKET, "Expected a '(' before expression");
 
-		int lineNum{ peek().m_lineNum };
+		int lineNum{peek().m_lineNum};
 
-		StmtPtr init{ declaration() };
-		VarStmtPtr initStmt{ dynamic_cast<VarStmt*>(init.get()) ? static_cast<VarStmt*>(init.release()) : nullptr };
+		StmtPtr init{declaration()};
+		VarStmtPtr initStmt{dynamic_cast<VarStmt *>(init.get()) ? static_cast<VarStmt *>(init.release()) : nullptr};
 
-		StmtPtr condition{ exprStatement() };
-		ExprStmtPtr condStmt{ static_cast<ExprStmt*>(condition.release()) };
+		StmtPtr condition{exprStatement()};
+		ExprStmtPtr condStmt{static_cast<ExprStmt *>(condition.release())};
 
-		ExprPtr update{ expression() };
+		ExprPtr update{expression()};
 
 		consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Expected a ')' after expression");
 
-		StmtPtr body{ statement() };
+		StmtPtr body{statement()};
 
 		return std::make_unique<ForStmt>(std::move(initStmt), std::move(condStmt), std::move(update), std::move(body), lineNum);
 	}
 
 	StmtPtr printStatement()
 	{
-		ExprPtr value{ expression() };
+		ExprPtr value{expression()};
 
 		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after expression.");
 
@@ -217,9 +241,9 @@ private:
 
 	StmtPtr inputStatement()
 	{
-		ExprPtr value{ expression() };
+		ExprPtr value{expression()};
 
-		auto* pVar = dynamic_cast<Variable*>(value.get());
+		auto *pVar = dynamic_cast<Variable *>(value.get());
 
 		if (!pVar)
 			throw InterpreterException(EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier.", peek().m_lineNum, false);
@@ -240,7 +264,7 @@ private:
 
 	StmtPtr exprStatement()
 	{
-		ExprPtr value{ expression() };
+		ExprPtr value{expression()};
 
 		consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after expression.");
 
@@ -250,24 +274,25 @@ private:
 	ExprPtr expression()
 	{
 		// Empty line
-		if (m_tokens.size() == 1) throw InterpreterException();
+		if (m_tokens.size() == 1)
+			throw InterpreterException();
 
 		return comma();
 	}
 
 	ExprPtr comma()
 	{
-		ExprPtr expr{ ternary() };
+		ExprPtr expr{ternary()};
 
 		ExprPtrs exprs{};
-		if (match({ COMMA }))
+		if (match({COMMA}))
 		{
 			exprs.push_back(std::move(expr));
 
 			do
 			{
 				exprs.push_back(ternary());
-			} while (match({ COMMA }));
+			} while (match({COMMA}));
 
 			expr = std::make_unique<CommaExpr>(std::move(exprs), peek().m_lineNum);
 		}
@@ -279,14 +304,38 @@ private:
 	{
 		ExprPtrs exprs{};
 
-		exprs.push_back(ternary());
+		if (check({RPAREN}))
+		{
+			return std::make_unique<CommaExpr>(std::move(exprs), peek().m_lineNum);
+		}
 
-		if (match({ COMMA }))
+		try
+		{
+			exprs.push_back(ternary());
+		}
+		catch (InterpreterException &e)
+		{
+			e.report();
+
+			synchronise();
+		}
+
+		if (match({COMMA}))
 		{
 			do
 			{
-				exprs.push_back(ternary());
-			} while (match({ COMMA }));
+				try
+				{
+					exprs.push_back(ternary());
+				}
+				catch (InterpreterException &e)
+				{
+					e.report();
+
+					synchronise();
+				}
+
+			} while (match({COMMA}));
 		}
 
 		return std::make_unique<CommaExpr>(std::move(exprs), peek().m_lineNum);
@@ -294,15 +343,15 @@ private:
 
 	ExprPtr ternary()
 	{
-		ExprPtr expr{ assignment() };
+		ExprPtr expr{assignment()};
 
-		if (match({ QUESTION }))
+		if (match({QUESTION}))
 		{
-			ExprPtr thenBranch{ expression() };
-			
+			ExprPtr thenBranch{expression()};
+
 			consume(COLON, EXIT_CODE::MISSING_COLON, "Expected ':' after expression.");
 
-			ExprPtr elseBranch{ ternary() };
+			ExprPtr elseBranch{ternary()};
 
 			expr = std::make_unique<Ternary>(std::move(expr), std::move(thenBranch), std::move(elseBranch), peek().m_lineNum);
 		}
@@ -312,16 +361,16 @@ private:
 
 	ExprPtr assignment()
 	{
-		ExprPtr expr{ equality() };
+		ExprPtr expr{equality()};
 
-		if (match({ EQUAL, PLUS_EQUAL, MINUS_EQUAL, ASTK_EQUAL, SLASH_EQUAL }))
+		if (match({EQUAL, PLUS_EQUAL, MINUS_EQUAL, ASTK_EQUAL, SLASH_EQUAL}))
 		{
-			Token op{ previous() };
+			Token op{previous()};
 
-			ExprPtr value{ assignment() };
+			ExprPtr value{assignment()};
 
 			// Check if left expr is identifier
-			if (auto varExpr = dynamic_cast<Variable*>(expr.get()))
+			if (auto varExpr = dynamic_cast<Variable *>(expr.get()))
 			{
 				Token name = varExpr->m_name;
 
@@ -336,13 +385,13 @@ private:
 
 	ExprPtr equality()
 	{
-		ExprPtr expr{ comparison() };
+		ExprPtr expr{comparison()};
 
-		while (match({ BANG_EQUAL, EQUAL_EQUAL }))
+		while (match({BANG_EQUAL, EQUAL_EQUAL}))
 		{
 			// Extract operands + operator
-			Token op{ previous() };
-			ExprPtr right{ comparison() };
+			Token op{previous()};
+			ExprPtr right{comparison()};
 			expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
 		}
 
@@ -351,13 +400,13 @@ private:
 
 	ExprPtr comparison()
 	{
-		ExprPtr expr{ term() };
+		ExprPtr expr{term()};
 
-		while (match({ GREATER, GREATER_EQUAL, LESS, LESS_EQUAL }))
+		while (match({GREATER, GREATER_EQUAL, LESS, LESS_EQUAL}))
 		{
 			// Extract operands + operator
-			Token op{ previous() };
-			ExprPtr right{ term() };
+			Token op{previous()};
+			ExprPtr right{term()};
 			expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
 		}
 
@@ -366,13 +415,13 @@ private:
 
 	ExprPtr term()
 	{
-		ExprPtr expr{ factor() };
+		ExprPtr expr{factor()};
 
-		while (match({ PLUS, MINUS, OR }))
+		while (match({PLUS, MINUS, OR}))
 		{
 			// Extract operands + operator
-			Token op{ previous() };
-			ExprPtr right{ factor() };
+			Token op{previous()};
+			ExprPtr right{factor()};
 			expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
 		}
 
@@ -381,13 +430,13 @@ private:
 
 	ExprPtr factor()
 	{
-		ExprPtr expr{ unary() };
+		ExprPtr expr{unary()};
 
-		while (match({ SLASH, ASTK, AND }))
+		while (match({SLASH, ASTK, AND}))
 		{
 			// Extract operands + operator
-			Token op{ previous() };
-			ExprPtr right{ unary() };
+			Token op{previous()};
+			ExprPtr right{unary()};
 			expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
 		}
 
@@ -396,12 +445,12 @@ private:
 
 	ExprPtr unary()
 	{
-		if (match({ BANG, MINUS }))
+		if (match({BANG, MINUS}))
 		{
 			// Extract operand + operator
-			Token op{ previous() };
+			Token op{previous()};
 
-			ExprPtr right{ unary() };
+			ExprPtr right{unary()};
 
 			return std::make_unique<Unary>(op, std::move(right));
 		}
@@ -411,20 +460,20 @@ private:
 
 	ExprPtr call()
 	{
-		ExprPtr expr{ primary() };
+		ExprPtr expr{primary()};
 
-		if (match({ LPAREN }))
+		if (match({LPAREN}))
 		{
-			auto* pIdtf = dynamic_cast<Variable*>(expr.get());
-			
+			auto *pIdtf = dynamic_cast<Variable *>(expr.get());
+
 			if (!pIdtf)
 				throw RuntimeException(peek(), "Object cannot be called. Expected an identifier.", peek().m_lineNum, EXIT_CODE::EXPECTED_IDNTF);
 
-			ExprPtr args{ arguments() };
+			ExprPtr args{arguments()};
 
-			std::unique_ptr<CommaExpr> pArgs{ static_cast<CommaExpr*>(args.get()) };
+			std::unique_ptr<CommaExpr> pArgs{static_cast<CommaExpr *>(args.release())};
 
-			Token paren{ consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Missing ')' after argument(s).") };
+			Token paren{consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Missing ')' after argument(s).")};
 
 			return std::make_unique<Call>(std::move(expr), paren, std::move(pArgs));
 		}
@@ -434,22 +483,27 @@ private:
 
 	ExprPtr primary()
 	{
-		// Extract boolean / null / number / string / grouping
-		if (match({ TRUE })) return std::make_unique<Literal>(true);
-		if (match({ FALSE })) return std::make_unique<Literal>(false);
-		if (match({ NIL })) return std::make_unique<Literal>(nullptr);
+		// Extract boolean / nil / number / string / identifier / grouping
+		if (match({TRUE}))
+			return std::make_unique<Literal>(true);
+		if (match({FALSE}))
+			return std::make_unique<Literal>(false);
+		if (match({NIL}))
+			return std::make_unique<Literal>(nullptr);
 
-		if (match({ NUMBER, STRING })) return std::make_unique<Literal>(previous().m_literal);
+		if (match({NUMBER, STRING}))
+			return std::make_unique<Literal>(previous().m_literal);
 
-		if (match({ IDENTIFIER })) return std::make_unique<Variable>(previous());
+		if (match({IDENTIFIER}))
+			return std::make_unique<Variable>(previous());
 
-		if (match({ LPAREN }))
+		if (match({LPAREN}))
 		{
-			if (match({ RPAREN }))
+			if (match({RPAREN}))
 				return nullExpr();
-			
-			ExprPtr expr{ expression() };
-			
+
+			ExprPtr expr{expression()};
+
 			// Check for matching parenthesis
 			consume(RPAREN, EXIT_CODE::MISSING_CLOSED_BRACKET, "Expected ')' after expression.");
 
@@ -458,17 +512,16 @@ private:
 			return expr;
 		}
 
-		if (match({ PLUS, ASTK, SLASH }))
-		{
+		if (match({PLUS, ASTK, SLASH}))
 			throw InterpreterException(EXIT_CODE::EXPECTED_OPD, "Missing left operand.", peek().m_lineNum, false);
-		}
 
 		throw InterpreterException(EXIT_CODE::EXPECTED_EXPR, "Expected an expression.", peek().m_lineNum, false);
 	}
 
 	Token consume(TokenType type, EXIT_CODE code, std::string message)
 	{
-		if (check(type)) return advance();
+		if (check(type))
+			return advance();
 
 		throw InterpreterException(code, message, peek().m_lineNum, false);
 	}
@@ -488,26 +541,31 @@ private:
 
 	void skipBlock()
 	{
-		if (check({ LPAREN }))
+		if (check({LPAREN}))
 		{
-			while (!isAtEnd() && !match({ RPAREN }))  advance();
+			while (!isAtEnd() && !match({RPAREN}))
+				advance();
 
-			if (isAtEnd()) return;
+			if (isAtEnd())
+				return;
 
-			if (match({ LBRACE }))
+			if (match({LBRACE}))
 			{
-				while (!isAtEnd() && !match({ RBRACE })) advance();
+				while (!isAtEnd() && !match({RBRACE}))
+					advance();
 				return;
 			}
 		}
 
-		if (match({ LBRACE }))
+		if (match({LBRACE}))
 		{
-			while (!isAtEnd() && !match({ RBRACE })) advance();
+			while (!isAtEnd() && !match({RBRACE}))
+				advance();
 			return;
 		}
 
-		while (!isAtEnd() && !match({ SEMICOLON })) advance();
+		while (!isAtEnd() && !match({SEMICOLON}))
+			advance();
 	}
 
 	void synchronise()
@@ -516,7 +574,8 @@ private:
 
 		while (!isAtEnd())
 		{
-			if (peek().m_type == SEMICOLON) return;
+			if (peek().m_type == SEMICOLON)
+				return;
 
 			switch (peek().m_type)
 			{
@@ -537,13 +596,15 @@ private:
 
 	Token advance()
 	{
-		if (!isAtEnd()) ++m_current;
+		if (!isAtEnd())
+			++m_current;
 		return previous();
 	}
 
 	bool check(TokenType type)
 	{
-		if (isAtEnd()) return false;
+		if (isAtEnd())
+			return false;
 		return peek().m_type == type;
 	}
 
@@ -573,10 +634,12 @@ private:
 
 		return stmts;
 	}
+
 public:
 	Parser(Tokens tokens)
-		: m_tokens { std::move(tokens) }
-	{ }
+		: m_tokens{std::move(tokens)}
+	{
+	}
 
 	StmtPtrs parse()
 	{

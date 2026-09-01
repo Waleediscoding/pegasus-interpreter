@@ -2,6 +2,7 @@
 
 #include <ctime>
 #include <string>
+#include <format>
 
 #include "expr.hpp"
 #include "stmt.hpp"

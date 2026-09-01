@@ -21,7 +21,7 @@ namespace TokenFxns
 				else if constexpr (std::is_same_v < T, std::string>)
 					return arg;
 				else
-					static_assert(!sizeof(T*), "Unresolved type in LitVal visitor.")
+					static_assert(!sizeof(T*), "Unresolved type in LitVal visitor.");
 			},
 			literal);
 

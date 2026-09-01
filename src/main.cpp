@@ -5,13 +5,11 @@
 
 int main(int argc, char** argv)
 {
-	Interpreter lox{};
-
-	std::cout << "";
+	Interpreter pegasus{};
 
 	try
 	{
-		lox.main(argc, argv);
+		pegasus.main(argc, argv);
 	}
 	catch (InterpreterException& e)
 	{

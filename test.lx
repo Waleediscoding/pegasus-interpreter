@@ -1,6 +1,0 @@
-fn greet()
-{
-	print "Hello user.";
-}
-
-greet();

@@ -15,7 +15,6 @@ class Scanner
 {
 private:
 	using enum TokenType;
-	LitVal loxNil{ nullptr };
 
 	std::unordered_map<std::string, TokenType> keywords =
 	{
@@ -130,7 +129,7 @@ private:
 
 	void addToken(TokenType type)
 	{
-		addToken(type, loxNil);
+		addToken(type, nullptr);
 	}
 
 	void addToken(TokenType type, LitVal literal)
@@ -282,7 +281,7 @@ public:
 			scanToken();
 		}
 
-		tokens.push_back(Token(END, "", loxNil, m_lineNum));
+		tokens.push_back(Token(END, "", nullptr, m_lineNum));
 
 		return tokens;
 	}

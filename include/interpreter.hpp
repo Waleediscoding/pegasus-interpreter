@@ -18,23 +18,25 @@
 class Interpreter
 {
 private:
+	using StmtPtrs = std::vector<std::unique_ptr<Stmt>>;
+
 	void run(std::string_view source, int lineNum)
 	{
 		try
 		{
-			Scanner scanner{ source, lineNum };
+			Scanner scanner{source, lineNum};
 
-			std::vector<Token> tkns{ scanner.scanTokens() };
+			std::vector<Token> tkns{scanner.scanTokens()};
 
-			Parser parser{ tkns };
+			Parser parser{tkns};
 
 			Evaluator evaluator{};
 
-			std::vector<std::unique_ptr<Stmt>> stmts{ parser.parse() };
+			StmtPtrs stmts{parser.parse()};
 
 			evaluator.interpret(stmts);
 		}
-		catch (InterpreterException& e)
+		catch (InterpreterException &e)
 		{
 			e.report();
 		}
@@ -55,14 +57,16 @@ private:
 			++lineNum;
 			std::cout << "> ";
 			std::getline(std::cin, line);
-			if (!std::cin) break;
+			if (!std::cin)
+				break;
+
 			run(line, lineNum);
 
 			ErrorFlag::errorRaised = false;
 		}
 	}
 
-	void runFile(char* path)
+	void runFile(char *path)
 	{
 		std::ifstream fileBinary(path, std::ios::binary | std::ios::ate);
 
@@ -72,7 +76,7 @@ private:
 		}
 
 		// size of file
-		std::streamsize size{ fileBinary.tellg() };
+		std::streamsize size{fileBinary.tellg()};
 		fileBinary.seekg(0, std::ios::beg);
 
 		std::string strBinary(size, '\0');
@@ -91,20 +95,20 @@ private:
 
 	void terminateProgram()
 	{
-		EXIT_CODE exitCode{ ErrorFlag::errorRaised ? EXIT_CODE::FAILURE : EXIT_CODE::SUCCESS };
+		EXIT_CODE exitCode{ErrorFlag::errorRaised ? EXIT_CODE::FAILURE : EXIT_CODE::SUCCESS};
 
-		int exitCodeInt{ static_cast<int>(exitCode) };
+		int exitCodeInt{static_cast<int>(exitCode)};
 
 		std::cout << "\nExited Succesfully. Exit status " << exitCodeInt;
 		std::exit(exitCodeInt);
 	}
 
 public:
-	void main(int argc, char** argv)
+	void main(int argc, char **argv)
 	{
 		if (argc > 2)
 		{
-			throw InterpreterException(EXIT_CODE::USAGE_ERR, "Usage: lox <file>");
+			throw InterpreterException(EXIT_CODE::USAGE_ERR, "Usage: <pegasus file path> <file>");
 		}
 
 		else if (argc == 1)

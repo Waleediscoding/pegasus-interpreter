@@ -6,7 +6,6 @@
 
 #include "token.hpp"
 
-
 enum class EXIT_CODE : int
 {
 	SUCCESS = 0,
@@ -39,6 +38,8 @@ enum class EXIT_CODE : int
 	DIV_ZERO,
 	UNDCLD_VAR,
 	INCORRECT_FXN_ARGS,
+	EXPECTED_CALLABLE,
+	RET_NOT_IN_FXN,
 
 	// file system
 	FILE_ERR,
@@ -48,31 +49,44 @@ enum class EXIT_CODE : int
 
 namespace ErrorFlag
 {
-	inline bool errorRaised{ false };
+	inline bool errorRaised{false};
 }
 
-struct BreakSignal {};
-struct ContinueSignal{};
+struct BreakSignal
+{
+};
+struct ContinueSignal
+{
+};
+struct ReturnSignal
+{
+	LitVal m_value;
+
+	ReturnSignal(LitVal value)
+		: m_value{value}
+	{
+	}
+};
 
 class InterpreterException : public std::exception
 {
 private:
-	EXIT_CODE m_code{ EXIT_CODE::UNIDENTIFIABLE };
-	std::string m_message{ "Unidentifiable error." };
-	int m_lineNum{ -1 };
-	bool m_terminate{ true };
+	EXIT_CODE m_code{EXIT_CODE::UNIDENTIFIABLE};
+	std::string m_message{"Unidentifiable error."};
+	int m_lineNum{-1};
+	bool m_terminate{true};
 
 public:
 	InterpreterException() = default;
 
 	InterpreterException(EXIT_CODE code, std::string message)
-		: m_code{ code }, m_message{ std::move(message) }
+		: m_code{code}, m_message{std::move(message)}
 	{
 	}
 
 	InterpreterException(EXIT_CODE code, std::string message, int lineNum, bool terminate)
-		: m_code{ code }, m_message{ std::move(message) },
-		m_lineNum{ lineNum }, m_terminate{ terminate }
+		: m_code{code}, m_message{std::move(message)},
+		  m_lineNum{lineNum}, m_terminate{terminate}
 	{
 	}
 
@@ -90,7 +104,7 @@ public:
 		}
 	}
 
-	const char* what() const noexcept override
+	const char *what() const noexcept override
 	{
 		return m_message.c_str();
 	}
@@ -121,12 +135,12 @@ class RuntimeException : public std::exception
 private:
 	Token m_op;
 	std::string m_message;
-	int m_lineNum{ -1 };
+	int m_lineNum{-1};
 	EXIT_CODE m_exitCode;
 
 public:
 	RuntimeException(Token op, std::string message, int lineNum, EXIT_CODE exitCode)
-		: m_op{ op }, m_message{ message }, m_lineNum{ lineNum }, m_exitCode{ exitCode }
+		: m_op{op}, m_message{message}, m_lineNum{lineNum}, m_exitCode{exitCode}
 	{
 	}
 
@@ -136,7 +150,7 @@ public:
 		std::cerr << "[Line " << lineNum() << "] Error: " << what() << " (E" << exitCodeInt() << ")\n";
 	}
 
-	const char* what() const noexcept override
+	const char *what() const noexcept override
 	{
 		return m_message.c_str();
 	}
