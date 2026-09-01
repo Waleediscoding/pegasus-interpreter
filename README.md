@@ -1,6 +1,6 @@
 # Pegasus Interpreter
 
-**Pegasus** is a dynamically-typed, procedural programming language. It is named so for its lightweight design and minimal payload.
+**Pegasus** is an interpreted, dynamically-typed, procedural programming language. It is named for its lightweight design and minimal payload.
 
 ## Niche & Purpose
 **Pegasus** is a general-purpose language, meaning it can theoretically implement any computable algorithm, as the language is **Turing-complete** (to a pragmatic degree).
