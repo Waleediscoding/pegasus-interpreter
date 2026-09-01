@@ -7,6 +7,8 @@
 
 I created the interpreter for it as a personal project to learn more about software design, sharpen my programming skills in a systems-level programming language such as C++ (which is the language the interpreter is fully written in), and to become comfortable with the process of building software in general.
 
+I loosely followed the book **Crafting Interpreters by Robert Nystrom** which involves building an interpreter in Java.
+
 ## Problems with the Software
 As I still am an amatuer, the program does consist of bugs which weren't identified in testing (such as indefinitely printing error messages), but I am actively working on it to fix them as of now.
 
