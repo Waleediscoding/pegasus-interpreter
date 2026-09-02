@@ -18,3 +18,12 @@ I advise *not* to run the interpreter on devices without an **OS-level Memory Ma
 
 ## Building Process
 A `CMakeLists.txt` file is present along with the source code to build the binary locally. As an example, you can use tools such as VS Code with its CMake extension to build the program.
+
+## Usage
+REPL mode
+`pegasus`
+
+File mode
+`pegasus <file path>`
+
+Thank you for using Pegasus.
