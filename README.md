@@ -21,9 +21,11 @@ A `CMakeLists.txt` file is present along with the source code to build the binar
 
 ## Usage
 REPL mode
-`pegasus`
+
+`> pegasus`
 
 File mode
-`pegasus <file path>`
+
+`> pegasus <file path>`
 
 Thank you for using Pegasus.
