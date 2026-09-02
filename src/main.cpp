@@ -1,21 +1,20 @@
 #include <iostream>
 
-#include "interpreter.hpp"
 #include "exception_handler.hpp"
+#include "interpreter.hpp"
 
 int main(int argc, char** argv)
 {
-	Interpreter pegasus{};
+    Interpreter pegasus{};
 
-	try
-	{
-		pegasus.main(argc, argv);
-	}
-	catch (InterpreterException& e)
-	{
-		// Terminal errors
-		e.report();
-	}
-	
-	return 0;
+    try
+    {
+        pegasus.main(argc, argv);
+    } catch (InterpreterException& e)
+    {
+        // Terminal errors
+        e.report();
+    }
+
+    return 0;
 }

@@ -1,5 +1,6 @@
 # All pegasus text files
 *.pg
+.clang-format
 
 .vscode/
 
