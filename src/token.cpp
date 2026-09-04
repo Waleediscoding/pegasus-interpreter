@@ -4,7 +4,7 @@
 namespace TokenFxns {
 std::string literalToStr(LitVal literal)
 {
-    // Convert data into string at runtime
+    // Resolve LitVal runtime type into string
     std::string ret = std::visit(
         [](const auto& arg) -> std::string {
             using T = std::decay_t<decltype(arg)>;
@@ -24,15 +24,6 @@ std::string literalToStr(LitVal literal)
         },
         literal);
 
-    return ret;
-}
-
-std::string toString(Token token)
-{
-    std::string literalStr{literalToStr(token.m_literal)};
-
-    std::string ret{std::format("| {} | {} | {} |", static_cast<int>(token.m_type), token.m_lexeme,
-                                literalStr)};
     return ret;
 }
 } // namespace TokenFxns

@@ -11,6 +11,7 @@
 
 class Evaluator;
 
+// Callable functions class
 class Callable
 {
   public:
@@ -37,6 +38,7 @@ class Clock : public Callable
     int arity() override { return 0; };
 };
 
+// User-defined function class
 class Function : public Callable
 {
   public:

@@ -369,7 +369,7 @@ class Parser
 
             ExprPtr value{assignment()};
 
-            // Check if left expr is identifier
+            // Check if left expr is an identifier
             if (auto varExpr = dynamic_cast<Variable*>(expr.get()))
             {
                 Token name = varExpr->m_name;

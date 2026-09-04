@@ -1,6 +1,7 @@
 #include "callable.hpp"
 #include "evaluator.hpp"
 
+// Native 'clock()' function
 LitVal Clock::call(Evaluator& ev, const std::vector<LitVal>& args)
 {
     return static_cast<double>(clock()) / CLOCKS_PER_SEC;
@@ -10,6 +11,7 @@ LitVal Function::call(Evaluator& ev, const std::vector<LitVal>& args)
 {
     std::shared_ptr<Environment> env{std::make_shared<Environment>(ev.globals)};
 
+    // Assign resolved arguments to function parameters
     for (size_t i{}; i < m_declaration->m_params.size(); ++i)
     {
         auto param{m_declaration->m_params.at(i)};
@@ -18,6 +20,7 @@ LitVal Function::call(Evaluator& ev, const std::vector<LitVal>& args)
         env->define(param.m_lexeme, arg);
     }
 
+    // Check for a 'return' statement
     try
     {
         ev.executeBlock(m_declaration->m_block.get(), env);

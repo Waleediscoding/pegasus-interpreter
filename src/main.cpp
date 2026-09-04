@@ -1,3 +1,5 @@
+// Author: Waleed
+
 #include <iostream>
 
 #include "exception_handler.hpp"
