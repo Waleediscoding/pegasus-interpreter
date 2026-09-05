@@ -246,7 +246,7 @@ class Parser
         auto* pVar = dynamic_cast<Variable*>(value.get());
 
         if (!pVar)
-            throw InterpreterException(EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier.",
+            throw RuntimeException(EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier.",
                                        peek().m_lineNum);
 
         consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after identifier.");
@@ -278,7 +278,20 @@ class Parser
         if (m_tokens.size() == 1)
             throw InterpreterException();
 
-        return comma();
+        try
+        {
+            return comma();
+        }
+        catch(InterpreterException& e)
+        {
+            e.report();
+
+            synchronise();
+
+            return nullExpr();
+        }
+        
+        
     }
 
     ExprPtr comma()
