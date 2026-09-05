@@ -63,6 +63,6 @@ class Environment
     {
         std::string message = "Undeclared variable '" + name.m_lexeme + "'.";
 
-        throw RuntimeException(name, message, name.m_lineNum, EXIT_CODE::UNDCLD_VAR);
+        throw RuntimeException(EXIT_CODE::UNDCLD_VAR, message, name.m_lineNum);
     }
 };

@@ -128,8 +128,7 @@ class Scanner
             }
             else
             {
-                throw InterpreterException(EXIT_CODE::INVALID_CHAR, "Invalid character.", m_lineNum,
-                                           false);
+                throw InterpreterException(EXIT_CODE::INVALID_CHAR, "Invalid character.", m_lineNum);
             }
             break;
         }
@@ -180,7 +179,7 @@ class Scanner
         if (peek() != '"')
         {
             throw InterpreterException(EXIT_CODE::UNTERMINATED_STR,
-                                       "Expected '\"' at the end of string.", m_lineNum, false);
+                                       "Expected '\"' at the end of string.", m_lineNum);
         }
 
         // Closing '"'
@@ -249,7 +248,7 @@ class Scanner
         {
             throw InterpreterException(EXIT_CODE::UNTERMINATED_CMT,
                                        "Expected \"*/\" at the end of multi-line comment.",
-                                       m_lineNum, false);
+                                       m_lineNum);
         }
 
         // Omit */

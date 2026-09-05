@@ -68,7 +68,7 @@ class Interpreter
 
         if (!fileBinary.is_open())
         {
-            throw InterpreterException(EXIT_CODE::FILE_ERR, "File could not be opened");
+            throw InterpreterException(EXIT_CODE::FILE_ERR, "File could not be opened", true);
         }
 
         // size of file
@@ -101,7 +101,7 @@ class Interpreter
     {
         if (argc > 2)
         {
-            throw InterpreterException(EXIT_CODE::USAGE_ERR, "Usage: <pegasus file path> <file>");
+            throw InterpreterException(EXIT_CODE::USAGE_ERR, "Usage: <pegasus file path> <file>", true);
         }
 
         else if (argc == 1)

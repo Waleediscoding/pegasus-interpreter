@@ -104,7 +104,7 @@ class Evaluator : public Visitor, public StmtVisitor
         if (!inFunc)
             throw InterpreterException(EXIT_CODE::RET_NOT_IN_FXN,
                                        "Keyword 'return' outside of a function body.",
-                                       stmt.m_lineNum, false);
+                                       stmt.m_lineNum);
 
         if (!stmt.m_expression)
             throw ReturnSignal(nullptr);
@@ -119,8 +119,8 @@ class Evaluator : public Visitor, public StmtVisitor
 
         if (!pBool)
             throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
-                                       "Expression must evaluate to a boolean.", stmt.m_lineNum,
-                                       false);
+                                       "Expression must evaluate to a boolean.", stmt.m_lineNum
+                                    );
 
         if (*pBool)
         {
@@ -150,8 +150,7 @@ class Evaluator : public Visitor, public StmtVisitor
 
             if (!pCondition)
                 throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
-                                           "Expression must evaluate to a boolean.", stmt.m_lineNum,
-                                           false);
+                                           "Expression must evaluate to a boolean.", stmt.m_lineNum);
 
             while (*pCondition)
             {
@@ -203,13 +202,12 @@ class Evaluator : public Visitor, public StmtVisitor
 
             if (!pCondition)
                 throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
-                                           "Expression must evaluate to a boolean.", stmt.m_lineNum,
-                                           false);
+                                           "Expression must evaluate to a boolean.", stmt.m_lineNum);
 
             if (!pInitValue)
                 throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
                                            "Expression must evaluate to an integer/float.",
-                                           stmt.m_lineNum, false);
+                                           stmt.m_lineNum);
 
             for (double i{*pInitValue}; *pCondition; eval(stmt.m_expr.get()))
             {
@@ -279,7 +277,7 @@ class Evaluator : public Visitor, public StmtVisitor
         if (!pCondition)
             throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
                                        "First expression must evaluate to a boolean.",
-                                       expr.m_lineNum, false);
+                                       expr.m_lineNum);
 
         m_result = (*pCondition) ? thenBranch : elseBranch;
     }
@@ -347,7 +345,7 @@ class Evaluator : public Visitor, public StmtVisitor
         case TokenType::SLASH_EQUAL:
             if (pRightDb && ((*pRightDb) == 0.0))
                 throw InterpreterException(EXIT_CODE::DIV_ZERO, "Division by zero.",
-                                           expr.m_op.m_lineNum, false);
+                                           expr.m_op.m_lineNum);
             if (pLeftDb && pRightDb)
             {
                 m_result = (*pLeftDb) / (*pRightDb);
@@ -405,7 +403,7 @@ class Evaluator : public Visitor, public StmtVisitor
             }
             throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
                                        "Expression must evaluate to a boolean.",
-                                       expr.m_op.m_lineNum, false);
+                                       expr.m_op.m_lineNum);
 
             break;
 
@@ -417,14 +415,14 @@ class Evaluator : public Visitor, public StmtVisitor
             }
             throw InterpreterException(EXIT_CODE::TYPE_MISMATCH,
                                        "Expression must evaluate to a boolean.",
-                                       expr.m_op.m_lineNum, false);
+                                       expr.m_op.m_lineNum);
 
             break;
         }
 
         std::string message = "Incorrect type(s) for operation '" + expr.m_op.m_lexeme + "'.";
 
-        throw RuntimeException(expr.m_op, message, expr.m_op.m_lineNum, EXIT_CODE::TYPE_MISMATCH);
+        throw RuntimeException(EXIT_CODE::TYPE_MISMATCH, message, expr.m_op.m_lineNum);
     }
 
     void visitAssignExpr(Assignment& expr) override
@@ -478,7 +476,7 @@ class Evaluator : public Visitor, public StmtVisitor
 
         std::string message = "Incorrect type(s) for operation '" + expr.m_op.m_lexeme + "'";
 
-        throw RuntimeException(expr.m_op, message, expr.m_op.m_lineNum, EXIT_CODE::TYPE_MISMATCH);
+        throw RuntimeException(EXIT_CODE::TYPE_MISMATCH, message, expr.m_op.m_lineNum);
     }
 
     void visitVarExpr(Variable& expr) override { m_result = m_env->value(expr.m_name); }
@@ -491,7 +489,7 @@ class Evaluator : public Visitor, public StmtVisitor
             throw InterpreterException(EXIT_CODE::BREAK_NOT_IN_LOOP,
                                        "Keyword '" + std::string(expr.m_name.m_lexeme) +
                                            "' outside of a loop.",
-                                       expr.m_name.m_lineNum, false);
+                                       expr.m_name.m_lineNum);
 
         if (expr.m_name.m_type == TokenType::BREAK)
             throw BreakSignal();
@@ -515,8 +513,7 @@ class Evaluator : public Visitor, public StmtVisitor
         const auto pFunc{std::get_if<std::shared_ptr<Callable>>(&value)};
 
         if (!pFunc || !*pFunc)
-            throw RuntimeException(expr.m_paren, "Object cannot be called.", expr.m_paren.m_lineNum,
-                                   EXIT_CODE::EXPECTED_CALLABLE);
+            throw RuntimeException(EXIT_CODE::EXPECTED_CALLABLE, "Object cannot be called.", expr.m_paren.m_lineNum);
 
         std::shared_ptr<Callable> func{*pFunc};
 
@@ -525,8 +522,7 @@ class Evaluator : public Visitor, public StmtVisitor
             std::string message = std::format("Expected {} argument(s) but received {}.",
                                               func->arity(), resolvedArgs.size());
 
-            throw RuntimeException(expr.m_paren, message, expr.m_paren.m_lineNum,
-                                   EXIT_CODE::INCORRECT_FXN_ARGS);
+            throw RuntimeException(EXIT_CODE::INCORRECT_FXN_ARGS , message, expr.m_paren.m_lineNum);
         }
 
         m_result = func->call(*this, resolvedArgs);

@@ -66,21 +66,20 @@ class InterpreterException : public std::exception
     EXIT_CODE m_code{EXIT_CODE::UNIDENTIFIABLE};
     std::string m_message{"Unidentifiable error."};
     int m_lineNum{-1};
-    bool m_terminate{true};
+    bool m_terminate{false};
 
   public:
     InterpreterException() = default;
 
-    InterpreterException(EXIT_CODE code, std::string message)
-        : m_code{code}, m_message{std::move(message)}
+    InterpreterException(EXIT_CODE code, std::string message, int lineNum)
+        : m_code{code}, m_message{std::move(message)}, m_lineNum{lineNum}
     {
     }
-
-    InterpreterException(EXIT_CODE code, std::string message, int lineNum, bool terminate)
-        : m_code{code}, m_message{std::move(message)}, m_lineNum{lineNum}, m_terminate{terminate}
+    InterpreterException(EXIT_CODE code, std::string message, bool terminate)
+        : m_code{code}, m_message{std::move(message)}, m_terminate{terminate}
     {
     }
-
+    
     void report() const noexcept
     {
         ErrorFlag::errorRaised = true;
@@ -110,14 +109,13 @@ class InterpreterException : public std::exception
 class RuntimeException : public std::exception
 {
   private:
-    Token m_op;
     std::string m_message;
     int m_lineNum{-1};
     EXIT_CODE m_exitCode;
 
   public:
-    RuntimeException(Token op, std::string message, int lineNum, EXIT_CODE exitCode)
-        : m_op{op}, m_message{message}, m_lineNum{lineNum}, m_exitCode{exitCode}
+    RuntimeException(EXIT_CODE exitCode, std::string message, int lineNum)
+        : m_message{message}, m_lineNum{lineNum}, m_exitCode{exitCode}
     {
     }
 
@@ -129,8 +127,6 @@ class RuntimeException : public std::exception
     }
 
     const char* what() const noexcept override { return m_message.c_str(); }
-
-    Token op() const noexcept { return m_op; }
 
     int lineNum() const noexcept { return m_lineNum; }
 

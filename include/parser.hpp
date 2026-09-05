@@ -125,7 +125,7 @@ class Parser
 
                 skipBlock();
                 throw InterpreterException(EXIT_CODE::INVALID_KEYW, "Invalid if-statement.",
-                                           lineNum, false);
+                                           lineNum);
             }
 
             return exprStatement();
@@ -247,7 +247,7 @@ class Parser
 
         if (!pVar)
             throw InterpreterException(EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier.",
-                                       peek().m_lineNum, false);
+                                       peek().m_lineNum);
 
         consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after identifier.");
 
@@ -378,7 +378,7 @@ class Parser
             }
 
             throw InterpreterException(EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier.",
-                                       peek().m_lineNum, false);
+                                       peek().m_lineNum);
         }
 
         return expr;
@@ -468,8 +468,8 @@ class Parser
             auto* pIdtf = dynamic_cast<Variable*>(expr.get());
 
             if (!pIdtf)
-                throw RuntimeException(peek(), "Object cannot be called. Expected an identifier.",
-                                       peek().m_lineNum, EXIT_CODE::EXPECTED_IDNTF);
+                throw RuntimeException(EXIT_CODE::EXPECTED_IDNTF, "Object cannot be called. Expected an identifier.",
+                                       peek().m_lineNum);
 
             ExprPtr args{arguments()};
 
@@ -517,10 +517,10 @@ class Parser
 
         if (match({PLUS, ASTK, SLASH}))
             throw InterpreterException(EXIT_CODE::EXPECTED_OPD, "Missing left operand.",
-                                       peek().m_lineNum, false);
+                                       peek().m_lineNum);
 
         throw InterpreterException(EXIT_CODE::EXPECTED_EXPR, "Expected an expression.",
-                                   peek().m_lineNum, false);
+                                   peek().m_lineNum);
     }
 
     Token consume(TokenType type, EXIT_CODE code, std::string message)
@@ -528,7 +528,7 @@ class Parser
         if (check(type))
             return advance();
 
-        throw InterpreterException(code, message, peek().m_lineNum, false);
+        throw InterpreterException(code, message, peek().m_lineNum);
     }
 
     bool match(TokenTypes types)
