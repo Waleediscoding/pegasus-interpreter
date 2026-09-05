@@ -247,7 +247,7 @@ class Parser
 
         if (!pVar)
             throw RuntimeException(EXIT_CODE::EXPECTED_IDNTF, "Expected an identifier.",
-                                       peek().m_lineNum);
+                                   peek().m_lineNum);
 
         consume(SEMICOLON, EXIT_CODE::EXPECTED_SEMICLN, "Expected ';' after identifier.");
 
@@ -281,8 +281,7 @@ class Parser
         try
         {
             return comma();
-        }
-        catch(InterpreterException& e)
+        } catch (InterpreterException& e)
         {
             e.report();
 
@@ -290,8 +289,6 @@ class Parser
 
             return nullExpr();
         }
-        
-        
     }
 
     ExprPtr comma()
@@ -481,7 +478,8 @@ class Parser
             auto* pIdtf = dynamic_cast<Variable*>(expr.get());
 
             if (!pIdtf)
-                throw RuntimeException(EXIT_CODE::EXPECTED_IDNTF, "Object cannot be called. Expected an identifier.",
+                throw RuntimeException(EXIT_CODE::EXPECTED_IDNTF,
+                                       "Object cannot be called. Expected an identifier.",
                                        peek().m_lineNum);
 
             ExprPtr args{arguments()};
