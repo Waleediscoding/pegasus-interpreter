@@ -28,4 +28,4 @@ File mode
 
 `> pegasus <file path>`
 
-Thank you for using Pegasus.
+Grammar & Syntax details to be found [here](PEGASUS.md). Thank you for using Pegasus.

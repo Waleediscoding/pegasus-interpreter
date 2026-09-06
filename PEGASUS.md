@@ -74,4 +74,4 @@ fn fact(n)
 print fact(5); // Output: 120
 ```
 
-You can find the entire grammar [here](AST.md).
+You can find the entire grammar [here](BNF.md).
