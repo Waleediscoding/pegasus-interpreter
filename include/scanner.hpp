@@ -21,8 +21,8 @@ class Scanner
         {"else", ELSE},   {"elif", ELIF},     {"false", FALSE},
         {"fn", FN},       {"for", FOR},       {"if", IF},
         {"nil", NIL},     {"or", OR},         {"print", PRINT},
-        {"input", INPUT}, {"return", RETURN}, {"this", THIS},
-        {"true", TRUE},   {"var", VAR},       {"while", WHILE}};
+        {"input", INPUT}, {"return", RETURN}, {"true", TRUE},
+        {"var", VAR},     {"while", WHILE}};
 
     // Data
     std::string m_source;
@@ -128,7 +128,8 @@ class Scanner
             }
             else
             {
-                throw InterpreterException(EXIT_CODE::INVALID_CHAR, "Invalid character.", m_lineNum);
+                throw InterpreterException(EXIT_CODE::INVALID_CHAR, "Invalid character.",
+                                           m_lineNum);
             }
             break;
         }

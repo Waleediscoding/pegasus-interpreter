@@ -132,7 +132,7 @@ class Parser
         } catch (InterpreterException& e)
         {
             e.report();
-
+            
             return nullStmt();
         }
     }
