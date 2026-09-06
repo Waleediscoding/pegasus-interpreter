@@ -3,12 +3,16 @@
 ```
 program ::= <statement>*
 
-statement ::= <declaration> | <block> | <return> | <if> | <elif>
-            | <while> | <for> | <print> | <input> | <keyword> | <exprStmt>
+statement ::= <declaration> | <block> | <return> | <if> | <while> 
+            | <for> | <print> | <input> | <keyword> | <exprStmt>
 
 declaration ::= <varDeclaration> | <funcDeclaration>
 
 varDeclaration ::= "var" IDENTIFIER (";" | ("=" <expression> ";"))
+
+funcDeclaration ::= "fn" IDENTIFIER "(" <parameters> ")" <block>
+
+parameters ::= IDENTIFIER? ("," IDENTIFIER)*
 
 block ::= "{" <statement>* "}"
 
@@ -24,7 +28,7 @@ for ::= "for" "(" <varDeclaration> <exprStmt> <expression> ")" <statement>
 
 print ::= "print" <expression> ";"
 
-input ::= "input" VARIABLE ";"
+input ::= "input" IDENTIFIER ";"
 
 keyword ::= ("break" | "continue") ";"
 
@@ -36,7 +40,7 @@ comma ::= <ternary> | <ternary> ("," <ternary>)+
 
 ternary ::= <assignment> | <assignment> "?" <expression> ":" <ternary>
 
-assignment ::= <equality> | VARIABLE ("=" | "+=" | "-=" | "*=" | "/=") <assignment>
+assignment ::= <equality> | IDENTIFIER ("=" | "+=" | "-=" | "*=" | "/=") <assignment>
 
 equality ::= <comparison> | <comparison> ("!=" | "==") <comparison>
 
@@ -48,7 +52,7 @@ factor ::= <unary> | <unary> ("/" | "*" | "and") <unary>
 
 unary ::= <call> | ("!" | "-") <unary>
 
-call ::= <primary> | VARIABLE "(" <arguments> ")" 
+call ::= <primary> | IDENTIFIER "(" <arguments> ")" 
 
 arguments ::= <expression>? ("," <expression>)*
 
